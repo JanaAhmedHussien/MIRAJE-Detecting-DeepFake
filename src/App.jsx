@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import './Miraje.css'
+import { useAuth } from './AuthContext';
+import AuthPage from './AuthPage';
 /* ── DATA CONFIG ── */
 const CFG = {
   image: {
@@ -197,6 +199,11 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
 
 /* ── MAIN APP ── */
 export default function Miraje() {
+
+  const { currentUser, logout } = useAuth();
+
+  // ── AUTH GATE: show login page if not authenticated ──
+  if (!currentUser) return <AuthPage />;
 
   const [mode, setModeKey] = useState("image");
   const [fileLoaded, setFileLoaded] = useState(false);
@@ -547,9 +554,37 @@ return (
           <button key={n} className={`nav-btn${activeNav === n ? " active" : ""}`} onClick={() => setActiveNav(n)}>{n}</button>
         ))}
       </nav>
-      <div className="sys-status">
-        <div className="pulse-dot" />
-        <span>Systems Online</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="sys-status">
+          <div className="pulse-dot" />
+          <span>Systems Online</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, borderLeft: "1px solid var(--rim)", paddingLeft: 16 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ghost)", letterSpacing: 1, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {currentUser.email}
+          </span>
+          <button
+            id="logout-btn"
+            onClick={logout}
+            style={{
+              background: "none",
+              border: "1px solid var(--rim2)",
+              borderRadius: 4,
+              color: "var(--ghost)",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 8,
+              letterSpacing: 2,
+              textTransform: "uppercase",
+              padding: "5px 12px",
+              cursor: "none",
+              transition: "color .2s, border-color .2s",
+            }}
+            onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(217,107,99,.4)"; }}
+            onMouseLeave={e => { e.target.style.color = "var(--ghost)"; e.target.style.borderColor = "var(--rim2)"; }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </header>
 
