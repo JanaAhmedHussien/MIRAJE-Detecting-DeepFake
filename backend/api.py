@@ -204,7 +204,7 @@ def predict_image():
             patch_tokens = patch_tokens.permute(0, 2, 1)
             patch_tokens = patch_tokens.view(patch_tokens.size(0), patch_tokens.size(1), 14, 14)
             cnn_features = cnn_block(patch_tokens)
-            combined     = torch.cat([cnn_features, cls_token], dim=1)
+            combined = torch.cat([cls_token, cnn_features], dim=1)
             logits       = fc_layers(combined)
             probs        = torch.softmax(logits, dim=1)
             fake_prob    = probs[0][1].item() * 100
