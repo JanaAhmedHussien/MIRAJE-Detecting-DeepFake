@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import './Miraje.css'
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
+import UIFace from './assets/UI-face.png';
 
 /* ── DATA CONFIG ── */
 const CFG = {
@@ -75,72 +76,165 @@ function StarCanvas() {
     useEffect(() => {
         const c = canvasRef.current;
         const ctx = c.getContext("2d");
-        let W, H, raf;
+        let W = 0, H = 0, raf, lastTs = 0;
 
-        // Mix of white stars and warm gold-tinted stars near horizon
-        const stars = Array.from({ length: 220 }, (_, i) => ({
-            x: Math.random(),
-            y: Math.random() * 0.62,
-            r: Math.random() * 1.3 + 0.18,
-            op: Math.random() * 0.62 + 0.08,
-            speed: Math.random() * 3.5 + 2,
-            phase: Math.random() * Math.PI * 2,
-            // Stars near horizon get warm gold tint
-            warm: Math.random() < 0.15
-        }));
-
-        // Shooting star state
-        let shootX = 0, shootY = 0, shootAlpha = 0, shootLen = 0;
-        let nextShoot = 8000 + Math.random() * 10000;
-        let shootStart = null;
-
-        function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+        function resize() {
+            W = c.width = window.innerWidth;
+            H = c.height = window.innerHeight;
+        }
         resize();
         window.addEventListener("resize", resize);
 
-        function draw(ts) {
-            ctx.clearRect(0, 0, W, H);
-            const t = Date.now() / 1000;
+        // Stars in pixel coords, velocity in pixels-per-second
+        const stars = Array.from({ length: 320 }, () => ({
+            x: Math.random() * (W || window.innerWidth),
+            y: Math.random() * ((H || window.innerHeight) * 0.65),
+            r: Math.random() * 1.6 + 0.3,
+            baseOp: Math.random() * 0.65 + 0.25,
+            twinkleSpeed: Math.random() * 1.5 + 0.5,
+            phase: Math.random() * Math.PI * 2,
+            vx: (Math.random() - 0.5) * 10,   // ±10 px/sec drift
+            vy: (Math.random() - 0.5) * 3.5,  // ±3.5 px/sec vertical
+            warm: Math.random() < 0.18,
+        }));
 
-            // Draw stars
+        // Shooting star
+        let shoot = null;
+        let nextShootDelay = 2000 + Math.random() * 3000;
+        let shootTimer = 0;
+
+        // Crossing stars (travel across the sky)
+        let crossers = [];
+        let nextCrossDelay = 4000 + Math.random() * 4000;
+        let crossTimer = 0;
+
+        function spawnCrosser() {
+            const fromLeft = Math.random() < 0.5;
+            crossers.push({
+                x: fromLeft ? -20 : W + 20,
+                y: H * 0.05 + Math.random() * H * 0.45,
+                vx: fromLeft ? (60 + Math.random() * 80) : -(60 + Math.random() * 80),
+                vy: (Math.random() - 0.5) * 20,
+                r: 0.8 + Math.random() * 0.7,
+                tailLen: 80 + Math.random() * 60,
+                life: 0,
+                maxLife: 3500 + Math.random() * 2000,
+                warm: Math.random() < 0.3,
+            });
+        }
+
+        function spawnShoot() {
+            shoot = {
+                x: W * 0.1 + Math.random() * W * 0.8,
+                y: H * 0.02 + Math.random() * H * 0.25,
+                len: 140 + Math.random() * 100,
+                age: 0,
+                life: 900, // ms
+                angle: Math.PI / 4 + (Math.random() - 0.5) * 0.5,
+            };
+        }
+
+        function draw(ts) {
+            const dt = Math.min((ts - lastTs) / 1000, 0.05); // seconds, capped at 50ms
+            lastTs = ts;
+
+            ctx.clearRect(0, 0, W, H);
+            const t = ts / 1000;
+
+            // Move & draw each star
             stars.forEach(s => {
-                const o = s.op * (0.58 + 0.42 * Math.sin(t / s.speed + s.phase));
+                s.x += s.vx * dt;
+                s.y += s.vy * dt;
+                // Wrap at edges
+                if (s.x < -4) s.x = W + 4;
+                if (s.x > W + 4) s.x = -4;
+                if (s.y < -4) s.y = H * 0.65;
+                if (s.y > H * 0.65) s.y = -4;
+
+                const twinkle = 0.45 + 0.55 * Math.sin(t * s.twinkleSpeed + s.phase);
+                const o = s.baseOp * twinkle;
                 ctx.beginPath();
-                ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
-                // Warm tint for stars near horizon
-                const warmBlend = s.warm ? `rgba(255,225,160,${o})` : `rgba(235,240,250,${o})`;
-                ctx.fillStyle = warmBlend;
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = s.warm ? `rgba(255,228,160,${o})` : `rgba(235,242,255,${o})`;
                 ctx.fill();
+
+                // Cross sparkle on bright large stars
+                if (s.r > 1.3 && o > 0.5) {
+                    const sl = s.r * 3.5;
+                    ctx.globalAlpha = o * 0.4;
+                    ctx.strokeStyle = s.warm ? `rgba(255,215,120,1)` : `rgba(190,215,255,1)`;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath(); ctx.moveTo(s.x - sl, s.y); ctx.lineTo(s.x + sl, s.y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(s.x, s.y - sl); ctx.lineTo(s.x, s.y + sl); ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
             });
 
-            // Shooting star
-            if (!shootStart) shootStart = ts;
-            const elapsed = ts - shootStart;
-            if (elapsed > nextShoot) {
-                const progress = (elapsed - nextShoot) / 1200;
-                if (progress < 1) {
-                    const sx = W * 0.3 + Math.random() * W * 0.5;
-                    const sy = H * 0.05 + Math.random() * H * 0.25;
-                    const len = 120 + Math.random() * 80;
-                    const alpha = progress < 0.5 ? progress * 2 : (1 - progress) * 2;
+            // Shooting star logic
+            shootTimer += dt * 1000;
+            if (shootTimer >= nextShootDelay && !shoot) {
+                spawnShoot();
+                shootTimer = 0;
+                nextShootDelay = 3000 + Math.random() * 6000;
+            }
+            if (shoot) {
+                shoot.age += dt * 1000;
+                const prog = shoot.age / shoot.life;
+                if (prog >= 1) {
+                    shoot = null;
+                } else {
+                    const alpha = prog < 0.3 ? prog / 0.3 : prog > 0.7 ? (1 - prog) / 0.3 : 1;
+                    const ex = shoot.x + Math.cos(shoot.angle) * shoot.len * prog;
+                    const ey = shoot.y + Math.sin(shoot.angle) * shoot.len * prog;
+                    const grad = ctx.createLinearGradient(shoot.x, shoot.y, ex, ey);
+                    grad.addColorStop(0, 'rgba(255,245,210,0)');
+                    grad.addColorStop(0.5, `rgba(255,245,210,${alpha * 0.9})`);
+                    grad.addColorStop(1, 'rgba(255,245,210,0)');
                     ctx.save();
-                    ctx.globalAlpha = alpha * 0.8;
-                    const grad = ctx.createLinearGradient(sx, sy, sx + len * 0.7, sy + len * 0.4);
-                    grad.addColorStop(0, 'rgba(255,240,200,0)');
-                    grad.addColorStop(0.4, 'rgba(255,240,200,0.7)');
-                    grad.addColorStop(1, 'rgba(255,240,200,0)');
+                    ctx.globalAlpha = 1;
                     ctx.strokeStyle = grad;
-                    ctx.lineWidth = 1.5;
+                    ctx.lineWidth = 1.8;
                     ctx.beginPath();
-                    ctx.moveTo(sx, sy);
-                    ctx.lineTo(sx + len * 0.7, sy + len * 0.4);
+                    ctx.moveTo(shoot.x, shoot.y);
+                    ctx.lineTo(ex, ey);
                     ctx.stroke();
                     ctx.restore();
-                } else {
-                    nextShoot = elapsed + 6000 + Math.random() * 12000;
-                    shootStart = ts;
                 }
             }
+
+            // Crossing stars logic
+            crossTimer += dt * 1000;
+            if (crossTimer >= nextCrossDelay && crossers.length < 3) {
+                spawnCrosser();
+                crossTimer = 0;
+                nextCrossDelay = 3000 + Math.random() * 5000;
+            }
+            crossers = crossers.filter(c => {
+                c.life += dt * 1000;
+                c.x += c.vx * dt;
+                c.y += c.vy * dt;
+                if (c.life >= c.maxLife || c.x < -200 || c.x > W + 200) return false;
+                const prog = c.life / c.maxLife;
+                const alpha = prog < 0.15 ? prog / 0.15 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
+                const tailX = c.x - Math.sign(c.vx) * c.tailLen;
+                const grad = ctx.createLinearGradient(tailX, c.y, c.x, c.y);
+                grad.addColorStop(0, 'rgba(255,245,210,0)');
+                grad.addColorStop(1, c.warm ? `rgba(255,220,140,${alpha * 0.85})` : `rgba(200,225,255,${alpha * 0.85})`);
+                ctx.save();
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = c.r;
+                ctx.beginPath();
+                ctx.moveTo(tailX, c.y);
+                ctx.lineTo(c.x, c.y);
+                ctx.stroke();
+                // head dot
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.r * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = c.warm ? `rgba(255,230,160,${alpha})` : `rgba(220,235,255,${alpha})`;
+                ctx.fill();
+                ctx.restore();
+                return true;
+            });
 
             raf = requestAnimationFrame(draw);
         }
@@ -560,41 +654,25 @@ export default function Miraje() {
                             <div className="hq-text">A mirage is not a lie. It is light, bending. Deepfakes are the same — truth, refracted through a machine.</div>
                         </div>
                     </div>
-                    {/* Stats panel replacing the empty right column */}
-                    <div style={{ animation: "fadeUp .9s var(--ease-out) .6s both" }}>
-                        <HeroStats />
-                        {/* Detection badge strip */}
-                        <div style={{
-                            marginTop: 18,
-                            padding: "14px 20px",
-                            background: "rgba(5,8,14,0.9)",
-                            border: "1px solid rgba(232,192,64,0.10)",
-                            borderRadius: 10,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 10,
-                        }}>
-                            {[
-                                { icon: "▣", label: "Image & Photo Forensics", status: "Live" },
-                                { icon: "▶", label: "Video Deepfake Detection", status: "Live" },
-                                { icon: "♪", label: "Voice Clone Detection", status: "Beta" },
-                                { icon: "✦", label: "Signature Verification", status: "Beta" },
-                            ].map((item, i) => (
-                                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--gold)", opacity: 0.55 }}>{item.icon}</span>
-                                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8.5, letterSpacing: 1.5, color: "var(--ghost)", textTransform: "uppercase" }}>{item.label}</span>
-                                    </div>
-                                    <span style={{
-                                        fontFamily: "'JetBrains Mono', monospace", fontSize: 6.5, letterSpacing: 2,
-                                        padding: "2px 8px", border: "1px solid", borderRadius: 3,
-                                        ...(item.status === "Live"
-                                            ? { color: "var(--safe2)", borderColor: "rgba(104,212,174,0.3)", background: "rgba(104,212,174,0.06)" }
-                                            : { color: "var(--gold-warm)", borderColor: "rgba(212,168,32,0.3)", background: "rgba(180,140,20,0.06)" }
-                                        )
-                                    }}>{item.status}</span>
-                                </div>
-                            ))}
+                    {/* FACE IMAGE — right column */}
+                    <div className="hero-face-wrap" style={{ animation: "fadeUp 1.1s var(--ease-out) .5s both" }}>
+                        <div className="hero-face-frame">
+                            {/* Animated corner brackets */}
+                            <div className="hf-corner hf-tl" />
+                            <div className="hf-corner hf-tr" />
+                            <div className="hf-corner hf-bl" />
+                            <div className="hf-corner hf-br" />
+                            {/* Scan line */}
+                            <div className="hf-scan" />
+                            {/* The image */}
+                            <img src={UIFace} alt="AI face mesh" className="hero-face-img" />
+                            {/* Overlay labels */}
+                            <div className="hf-label hf-label-tl">MESH · v4.2</div>
+                            <div className="hf-label hf-label-tr">GAN · DETECT</div>
+                            <div className="hf-label hf-label-bl">LANDMARK · 468PT</div>
+                            <div className="hf-label hf-label-br">ACTIVE</div>
+                            {/* Bottom glow bar */}
+                            <div className="hf-glow-bar" />
                         </div>
                     </div>
                 </div>
