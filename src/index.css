@@ -1,68 +1,206 @@
+/* Update the root variables section */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --void: #0a0c14;
+  /* Lighter than #010204 - less harsh */
+  --ink: #0f121c;
+  --layer: #151a28;
+  --lift: #1c2232;
+  --rim: #242c40;
+  --rim2: #2c3650;
+  --fog: #4a5470;
+  --ghost: #7a84a0;
+  --pale: #b8c0d8;
+  --silver: #e0e4f0;
+  --paper: #f5f7fc;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Gold palette - softer, less intense */
+  --gold-deep: #8a6a28;
+  --gold-mid: #c49a3a;
+  --gold-warm: #d4aa4a;
+  --gold: #e0b85c;
+  --gold-bright: #e8c87a;
+  --gold-pale: #f0e0b0;
+  --gold-dim: rgba(224, 184, 92, 0.12);
+  --gold-glow: rgba(224, 184, 92, 0.18);
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Sand palette - warmer and softer */
+  --sand-deep: #4a3a22;
+  --sand-dark: #6a5438;
+  --sand-mid: #9a7c50;
+  --sand: #c4a878;
+  --sand-light: #d8c49e;
+  --sand-pale: #ece0c8;
+
+  /* Semantic - softer error states */
+  --danger2: #c8766e;
+  --safe2: #6ec4a4;
+  --warn2: #c8a85e;
+
+  /* Reduce overall contrast */
+  --text-primary: #d0d4e4;
+  --text-secondary: #8a90a8;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
+/* Body background - softer */
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  background: var(--void);
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 350;
+  /* Slightly bolder for readability */
+  font-size: 16px;
+  line-height: 1.6;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Reduce grain overlay opacity */
+body::before {
+  opacity: 0.25;
+  /* Reduced from 0.5 */
+  mix-blend-mode: normal;
+  /* Changed from overlay */
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* Larger, more readable text */
+.hero-desc {
+  font-size: 17px;
+  /* Increased from 15px */
+  line-height: 1.8;
+  color: var(--text-primary);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.hero-title {
+  font-weight: 400;
+  letter-spacing: -1px;
+  /* Reduced from -2px */
+}
+
+/* Mode tiles - better readability */
+.mode-name {
+  font-size: 26px;
+  /* Increased from 24px */
+  font-weight: 400;
+}
+
+.mode-desc {
+  font-size: 14px;
+  /* Increased from 12.5px */
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Result cards */
+.rc-name {
+  font-size: 24px;
+  /* Increased from 21px */
+}
+
+.rc-score {
+  font-size: 56px;
+  /* Increased from 48px */
+}
+
+.rc-desc {
+  font-size: 14px;
+  /* Increased from 12px */
+  line-height: 1.6;
+}
+
+/* Drop zone */
+.drop-title {
+  font-size: 28px;
+  /* Increased from 24px */
+}
+
+.drop-sub {
+  font-size: 15px;
+  /* Increased from 13.5px */
+}
+
+/* Metrics panel */
+.metric-val {
+  font-size: 12px;
+  /* Increased from 9px */
+}
+
+.metric-name {
+  font-size: 9px;
+  /* Increased from 7.5px */
+  letter-spacing: 2px;
+}
+
+/* Verdict panel */
+.verdict-word {
+  font-size: 26px;
+  /* Increased from 21px */
+}
+
+.verdict-note {
+  font-size: 14px;
+  /* Increased from 12.5px */
+}
+
+.vr-pct {
+  font-size: 38px;
+  /* Increased from 32px */
+}
+
+/* Table */
+.t-fname {
+  font-size: 15px;
+  /* Increased from 13px */
+}
+
+.t-fsize {
+  font-size: 10px;
+  /* Increased from 8px */
+}
+
+.t-conf {
+  font-size: 22px;
+  /* Increased from 19px */
+}
+
+.t-date {
+  font-size: 11px;
+  /* Increased from 9px */
+}
+
+/* Run button */
+.run-btn {
+  font-size: 13px;
+  /* Increased from 11px */
+  padding: 20px;
+  /* Increased from 18px */
+  letter-spacing: 4px;
+}
+
+/* Add these at the end of index.css */
+
+/* Reduced contrast mode for comfort */
+.reduce-contrast .hero-desc,
+.reduce-contrast .mode-desc,
+.reduce-contrast .rc-desc,
+.reduce-contrast .verdict-note {
+  color: #a0a8c0;
+}
+
+/* Soft text shadow for better readability on dark backgrounds */
+.hero-desc,
+.mode-desc,
+.rc-desc,
+.drop-sub,
+.verdict-note {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Glow effects - reduced intensity */
+.gold-glow-subtle {
+  box-shadow: 0 0 30px rgba(224, 184, 92, 0.08);
+}
+
+/* Better focus states */
+.auth-input:focus,
+.drop-zone:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(224, 184, 92, 0.15), 0 0 0 4px rgba(224, 184, 92, 0.05);
 }
