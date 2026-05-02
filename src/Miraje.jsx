@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
 import UIFace from './assets/UI-face.png';
 
+
 /* ── DATA CONFIG ── */
 const CFG = {
     image: {
@@ -85,7 +86,7 @@ function StarCanvas() {
         resize();
         window.addEventListener("resize", resize);
 
-        // Enhanced stars with 320 stars
+        // Stars in pixel coords, velocity in pixels-per-second
         const stars = Array.from({ length: 320 }, () => ({
             x: Math.random() * (W || window.innerWidth),
             y: Math.random() * ((H || window.innerHeight) * 0.65),
@@ -93,8 +94,8 @@ function StarCanvas() {
             baseOp: Math.random() * 0.65 + 0.25,
             twinkleSpeed: Math.random() * 1.5 + 0.5,
             phase: Math.random() * Math.PI * 2,
-            vx: (Math.random() - 0.5) * 10,
-            vy: (Math.random() - 0.5) * 3.5,
+            vx: (Math.random() - 0.5) * 10,   // ±10 px/sec drift
+            vy: (Math.random() - 0.5) * 3.5,  // ±3.5 px/sec vertical
             warm: Math.random() < 0.18,
         }));
 
@@ -103,7 +104,7 @@ function StarCanvas() {
         let nextShootDelay = 2000 + Math.random() * 3000;
         let shootTimer = 0;
 
-        // Crossing stars
+        // Crossing stars (travel across the sky)
         let crossers = [];
         let nextCrossDelay = 4000 + Math.random() * 4000;
         let crossTimer = 0;
@@ -129,13 +130,13 @@ function StarCanvas() {
                 y: H * 0.02 + Math.random() * H * 0.25,
                 len: 140 + Math.random() * 100,
                 age: 0,
-                life: 900,
+                life: 900, // ms
                 angle: Math.PI / 4 + (Math.random() - 0.5) * 0.5,
             };
         }
 
         function draw(ts) {
-            const dt = Math.min((ts - lastTs) / 1000, 0.05);
+            const dt = Math.min((ts - lastTs) / 1000, 0.05); // seconds, capped at 50ms
             lastTs = ts;
 
             ctx.clearRect(0, 0, W, H);
@@ -145,6 +146,7 @@ function StarCanvas() {
             stars.forEach(s => {
                 s.x += s.vx * dt;
                 s.y += s.vy * dt;
+                // Wrap at edges
                 if (s.x < -4) s.x = W + 4;
                 if (s.x > W + 4) s.x = -4;
                 if (s.y < -4) s.y = H * 0.65;
@@ -157,6 +159,7 @@ function StarCanvas() {
                 ctx.fillStyle = s.warm ? `rgba(255,228,160,${o})` : `rgba(235,242,255,${o})`;
                 ctx.fill();
 
+                // Cross sparkle on bright large stars
                 if (s.r > 1.3 && o > 0.5) {
                     const sl = s.r * 3.5;
                     ctx.globalAlpha = o * 0.4;
@@ -225,6 +228,7 @@ function StarCanvas() {
                 ctx.moveTo(tailX, c.y);
                 ctx.lineTo(c.x, c.y);
                 ctx.stroke();
+                // head dot
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, c.r * 1.5, 0, Math.PI * 2);
                 ctx.fillStyle = c.warm ? `rgba(255,230,160,${alpha})` : `rgba(220,235,255,${alpha})`;
@@ -650,20 +654,24 @@ export default function Miraje() {
                             <div className="hq-text">A mirage is not a lie. It is light, bending. Deepfakes are the same — truth, refracted through a machine.</div>
                         </div>
                     </div>
-
                     {/* FACE IMAGE — right column */}
                     <div className="hero-face-wrap" style={{ animation: "fadeUp 1.1s var(--ease-out) .5s both" }}>
                         <div className="hero-face-frame">
+                            {/* Animated corner brackets */}
                             <div className="hf-corner hf-tl" />
                             <div className="hf-corner hf-tr" />
                             <div className="hf-corner hf-bl" />
                             <div className="hf-corner hf-br" />
+                            {/* Scan line */}
                             <div className="hf-scan" />
+                            {/* The image */}
                             <img src={UIFace} alt="AI face mesh" className="hero-face-img" />
+                            {/* Overlay labels */}
                             <div className="hf-label hf-label-tl">MESH · v4.2</div>
                             <div className="hf-label hf-label-tr">GAN · DETECT</div>
                             <div className="hf-label hf-label-bl">LANDMARK · 468PT</div>
                             <div className="hf-label hf-label-br">ACTIVE</div>
+                            {/* Bottom glow bar */}
                             <div className="hf-glow-bar" />
                         </div>
                     </div>
