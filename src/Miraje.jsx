@@ -71,7 +71,7 @@ const CFG = {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ── ANIMATED STAR CANVAS ── */
+/* ── ENHANCED ANIMATED STAR CANVAS ── */
 function StarCanvas() {
     const canvasRef = useRef(null);
     useEffect(() => {
@@ -251,7 +251,6 @@ function StarCanvas() {
 function SandDunes() {
     return (
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, pointerEvents: "none" }}>
-            {/* Far dune — darkest */}
             <svg viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ width: "100%", height: 120, display: "block" }}>
                 <defs>
                     <linearGradient id="dune1" x1="0" y1="0" x2="0" y2="1">
@@ -261,7 +260,6 @@ function SandDunes() {
                 </defs>
                 <path d="M0,80 C120,45 280,100 440,65 C600,30 720,90 900,55 C1080,20 1250,75 1440,50 L1440,120 L0,120 Z" fill="url(#dune1)" />
             </svg>
-            {/* Near dune — slightly lighter, slight ridge highlight */}
             <svg viewBox="0 0 1440 90" preserveAspectRatio="none" style={{ width: "100%", height: 90, display: "block", marginTop: -2 }}>
                 <defs>
                     <linearGradient id="dune2" x1="0" y1="0" x2="0" y2="1">
@@ -273,9 +271,7 @@ function SandDunes() {
                         <stop offset="100%" stopColor="rgba(255,225,140,0)" />
                     </linearGradient>
                 </defs>
-                {/* Main dune shape */}
                 <path d="M0,50 C200,20 400,70 600,30 C800,-10 1000,60 1200,25 C1320,8 1380,40 1440,20 L1440,90 L0,90 Z" fill="url(#dune2)" />
-                {/* Ridge highlight — top 2px lit by setting sun */}
                 <path d="M0,50 C200,20 400,70 600,30 C800,-10 1000,60 1200,25 C1320,8 1380,40 1440,20" fill="none" stroke="url(#duneRidge)" strokeWidth="3" />
             </svg>
         </div>
@@ -394,7 +390,7 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
     );
 }
 
-/* ── HERO STATS STRIP ── */
+/* ── HERO STATS STRIP (Optional Enhancement) ── */
 function HeroStats() {
     const stats = [
         { val: "99.4%", label: "Detection Accuracy" },
@@ -412,6 +408,7 @@ function HeroStats() {
             borderRadius: 12,
             overflow: "hidden",
             animation: "fadeUp .8s var(--ease-out) .9s both",
+            marginTop: 32,
         }}>
             {stats.map((s, i) => (
                 <div key={i} style={{
@@ -479,6 +476,8 @@ export default function Miraje() {
     function handleSetMode(k) {
         setModeKey(k);
         setFileLoaded(false); setPreviewSrc(null); setFileName(null); setFileSize(null);
+        setFile(null);
+        setAudioSrc(null);
     }
 
     function loadFile(f) {
@@ -554,7 +553,7 @@ export default function Miraje() {
             conf: score.toFixed(1) + "%", confClr: color, date: dateStr
         }, ...prev]);
         setAnalysing(false);
-    }, [fileLoaded, analysing, mode, cfg, file]);
+    }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize]);
 
     function getModeGlyph(m) {
         return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : "✦";
@@ -609,7 +608,7 @@ export default function Miraje() {
                 </div>
             </header>
 
-            {/* HERO */}
+            {/* HERO SECTION */}
             <div className="hero">
                 <div className="sky"><StarCanvas /></div>
 
@@ -678,13 +677,16 @@ export default function Miraje() {
                     </div>
                 </div>
 
+                {/* Optional Hero Stats Strip - Uncomment if desired */}
+                {/* <HeroStats /> */}
+
                 <div className="scroll-hint">
                     <div className="sh-text">Scroll</div>
                     <div className="sh-line" />
                 </div>
             </div>
 
-            {/* MAIN */}
+            {/* MAIN CONTENT */}
             <main>
                 <div className="page">
 
@@ -733,7 +735,7 @@ export default function Miraje() {
                                     </div>
                             }
                         </div>
-                        <input type="file" ref={fileRef} onChange={onFilePick} />
+                        <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: "none" }} />
 
                         {/* SIDEBAR */}
                         <div className="sidebar">
