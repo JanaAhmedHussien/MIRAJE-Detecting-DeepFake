@@ -11,9 +11,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -22,6 +24,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -39,4 +42,65 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Softer auth page colors */
+
+.auth-root {
+  background: #0a0c14;
+  /* Softer than #010204 */
+}
+
+.auth-bg {
+  background:
+    radial-gradient(ellipse 90% 65% at 50% 100%, rgba(160, 115, 20, 0.10) 0%, transparent 65%),
+    linear-gradient(to bottom,
+      #0a0c14 0%,
+      #0f1220 22%,
+      #151830 42%,
+      #1a1e38 58%,
+      #1e1c30 72%,
+      #201e28 84%,
+      #1c1a24 100%);
+}
+
+/* Reduce glow intensity */
+.auth-glow-blob {
+  background: radial-gradient(ellipse,
+      rgba(200, 160, 40, 0.06) 0%,
+      rgba(160, 120, 20, 0.03) 40%,
+      transparent 70%);
+  filter: blur(60px);
+}
+
+/* Better text contrast on auth card */
+.auth-card {
+  background: rgba(15, 20, 30, 0.96);
+}
+
+.auth-wordmark {
+  font-size: 44px;
+  /* Increased */
+  letter-spacing: 20px;
+}
+
+.auth-tagline {
+  font-size: 9px;
+  /* Increased */
+  letter-spacing: 5px;
+}
+
+.auth-input {
+  font-size: 16px;
+  padding: 16px 20px;
+}
+
+.auth-label {
+  font-size: 9px;
+  letter-spacing: 3.5px;
+}
+
+.auth-submit {
+  font-size: 12px;
+  padding: 18px;
 }
