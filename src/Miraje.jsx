@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
 import UIFace from './assets/UI-face.png';
 
+
 /* ── DATA CONFIG ── */
 const CFG = {
     image: {
