@@ -22,9 +22,29 @@ N_FFT = 2048
 HOP_LENGTH = 512
 TARGET_LENGTH = SAMPLE_RATE * DURATION
 
-audio_model = tf.keras.models.load_model("audio_model.keras", compile=False)
-audio_model.trainable = False
+audio_model_ready = False
+audio_model = None
 
+try:
+    if not os.path.exists("../audio_model.keras"):
+        raise FileNotFoundError("audio_model.keras not found")
+    from tensorflow.keras.initializers import Orthogonal
+    from tensorflow.keras.layers import LSTM, Conv2D, Dense, Dropout, Reshape
+    from tensorflow.keras.models import Model
+    audio_model = tf.keras.models.load_model(
+        "../audio_model.keras",
+        compile=False,
+        custom_objects={
+            "Orthogonal": Orthogonal,
+            "Functional": tf.keras.Model
+        }
+    )
+    audio_model.trainable = False
+    audio_model_ready = True
+    print("✅ Audio model loaded")
+except Exception as e:
+    print(f"⚠️ Audio model NOT loaded: {e}")
+    
 def extract_features(path):
     audio, sr = librosa.load(path, sr=SAMPLE_RATE)
     if len(audio) >= TARGET_LENGTH:
@@ -39,8 +59,18 @@ def extract_features(path):
     log_mel = (log_mel - log_mel.min()) / (rng + 1e-8)
     return log_mel[..., np.newaxis].astype(np.float32)
 
+@app.get("/")
+def root():
+    return {"service": "Audio Detection Service", "status": "running"}
+
+@app.get("/health")
+def health():
+    return {"status": "audio service running", "model": audio_model_ready}
+
 @app.post("/predict-audio")
 async def predict_audio(audio: UploadFile = File(...)):
+    if not audio_model_ready:
+        return {"error": "Audio model not loaded"}
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(await audio.read())
         tmp_path = tmp.name
@@ -55,7 +85,3 @@ async def predict_audio(audio: UploadFile = File(...)):
         }
     finally:
         os.remove(tmp_path)
-
-@app.get("/health")
-def health():
-    return {"status": "audio service running"}
