@@ -140,6 +140,14 @@ def extract_signature_features(path):
     img = img.astype(np.float32) / 255.0
     return np.expand_dims(img, 0)
 
+@app.get("/")
+def root():
+    return {
+        "project": "Miraje - Deepfake Detection",
+        "version": "2.0",
+        "docs": "http://localhost:5000/docs",
+        "health": "http://localhost:5000/health"
+    }
 # ============================================================
 # HEALTH CHECK
 # ============================================================
