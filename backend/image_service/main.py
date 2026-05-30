@@ -70,11 +70,9 @@ def health():
 async def predict_image(image: UploadFile = File(...)):
     if not image_model_ready:
         return {"error": "Image model not loaded"}
-    
     contents = await image.read()
     img = Image.open(io.BytesIO(contents)).convert("RGB")
     img = image_transform(img).unsqueeze(0).to(device)
-    
     with torch.no_grad():
         vit_outputs = vit(pixel_values=img)
         last_hidden = vit_outputs.last_hidden_state
@@ -89,11 +87,8 @@ async def predict_image(image: UploadFile = File(...)):
         combined = torch.cat([cls_token, cnn_features], dim=1)
         logits = fc_layers(combined)
         probs = torch.softmax(logits, dim=1)
-
-        # ImageFolder sorts alphabetically: 0=fake, 1=real
-        fake_prob = probs[0][0].item() * 100
-        real_prob = probs[0][1].item() * 100
-
+        fake_prob = probs[0][1].item() * 100
+        real_prob = probs[0][0].item() * 100
     return {
         "prediction": "fake" if fake_prob > real_prob else "real",
         "fake_probability": round(fake_prob, 2),
