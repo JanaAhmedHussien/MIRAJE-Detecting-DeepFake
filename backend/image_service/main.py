@@ -75,13 +75,15 @@ async def predict_image(image: UploadFile = File(...)):
     img = image_transform(img).unsqueeze(0).to(device)
     with torch.no_grad():
         vit_outputs = vit(pixel_values=img)
-        cls_token = vit_outputs.last_hidden_state[:, 0, :]
-        patch_tokens = vit_outputs.last_hidden_state[:, 1:, :]
-        patch_tokens = patch_tokens.permute(0, 2, 1)
-        patch_tokens = patch_tokens.view(
-            patch_tokens.size(0), patch_tokens.size(1), 14, 14
-        )
-        cnn_features = cnn_block(patch_tokens)
+        last_hidden = vit_outputs.last_hidden_state
+        cls_token = last_hidden[:, 0, :]
+        patch_tokens = last_hidden[:, 1:, :]
+
+        B, N, C = patch_tokens.shape
+        h = w = int(N ** 0.5)
+        patch_grid = patch_tokens.transpose(1, 2).contiguous().view(B, C, h, w)
+
+        cnn_features = cnn_block(patch_grid)
         combined = torch.cat([cls_token, cnn_features], dim=1)
         logits = fc_layers(combined)
         probs = torch.softmax(logits, dim=1)
