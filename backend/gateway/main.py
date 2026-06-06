@@ -11,10 +11,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-IMAGE_SERVICE = "http://localhost:5001"
-AUDIO_SERVICE = "http://localhost:5002"
+IMAGE_SERVICE     = "http://localhost:5001"
+AUDIO_SERVICE     = "http://localhost:5002"
 SIGNATURE_SERVICE = "http://localhost:5003"
 TEXT_SERVICE      = "http://localhost:5004"
+VIDEO_SERVICE     = "http://localhost:5005"
+
 
 @app.get("/")
 def root():
@@ -24,20 +26,24 @@ def root():
         "docs": "http://localhost:5000/docs"
     }
 
+
 @app.get("/health")
 async def health():
     async with httpx.AsyncClient(timeout=10) as client:
         image_status = await client.get(f"{IMAGE_SERVICE}/health")
         audio_status = await client.get(f"{AUDIO_SERVICE}/health")
-        sig_status = await client.get(f"{SIGNATURE_SERVICE}/health")
+        sig_status   = await client.get(f"{SIGNATURE_SERVICE}/health")
+        video_status = await client.get(f"{VIDEO_SERVICE}/health")
     return {
         "gateway": "running",
         "services": {
-            "image": image_status.json(),
-            "audio": audio_status.json(),
-            "signature": sig_status.json()
+            "image":     image_status.json(),
+            "audio":     audio_status.json(),
+            "signature": sig_status.json(),
+            "video":     video_status.json(),
         }
     }
+
 
 @app.post("/predict-image")
 async def predict_image(image: UploadFile = File(...)):
@@ -49,6 +55,7 @@ async def predict_image(image: UploadFile = File(...)):
         )
     return response.json()
 
+
 @app.post("/predict-audio")
 async def predict_audio(audio: UploadFile = File(...)):
     contents = await audio.read()
@@ -59,6 +66,7 @@ async def predict_audio(audio: UploadFile = File(...)):
         )
     return response.json()
 
+
 @app.post("/predict-signature")
 async def predict_signature(signature: UploadFile = File(...)):
     contents = await signature.read()
@@ -66,5 +74,16 @@ async def predict_signature(signature: UploadFile = File(...)):
         response = await client.post(
             f"{SIGNATURE_SERVICE}/predict-signature",
             files={"signature": (signature.filename, contents, signature.content_type)}
+        )
+    return response.json()
+
+
+@app.post("/predict-video")
+async def predict_video(video: UploadFile = File(...)):
+    contents = await video.read()
+    async with httpx.AsyncClient(timeout=120) as client:   # videos need more time
+        response = await client.post(
+            f"{VIDEO_SERVICE}/predict-video",
+            files={"video": (video.filename, contents, video.content_type)}
         )
     return response.json()
