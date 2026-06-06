@@ -14,6 +14,7 @@ app.add_middleware(
 IMAGE_SERVICE = "http://localhost:5001"
 AUDIO_SERVICE = "http://localhost:5002"
 SIGNATURE_SERVICE = "http://localhost:5003"
+TEXT_SERVICE      = "http://localhost:5004"
 
 @app.get("/")
 def root():
