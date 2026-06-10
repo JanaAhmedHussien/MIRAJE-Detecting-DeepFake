@@ -10,15 +10,15 @@ const CFG = {
     image: {
         fmts: ["JPG", "PNG", "WEBP", "GIF", "BMP", "TIFF"],
         metrics: [
-            { n: "GAN Fingerprint", c: "var(--danger2)" },
-            { n: "Frequency Anomaly", c: "var(--gold)" },
+            { n: "GAN Fingerprint",     c: "var(--danger2)" },
+            { n: "Frequency Anomaly",   c: "var(--gold)" },
             { n: "Face Landmark Drift", c: "var(--warn2)" },
-            { n: "Compression Traces", c: "var(--safe2)" }
+            { n: "Compression Traces",  c: "var(--safe2)" }
         ],
         steps: ["Preprocessing", "Feature Extraction", "GAN Classifier", "Frequency Analysis", "Report Generation"],
         results: [
-            { code: "SYS-01", name: "Face Analysis", desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
-            { code: "SYS-02", name: "Frequency Domain", desc: "DCT & Fourier transform artifact detection in latent space" },
+            { code: "SYS-01", name: "Face Analysis",     desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
+            { code: "SYS-02", name: "Frequency Domain",  desc: "DCT & Fourier transform artifact detection in latent space" },
             { code: "SYS-03", name: "Texture Forensics", desc: "Pixel-level GAN fingerprint extraction and classification" }
         ]
     },
@@ -26,14 +26,14 @@ const CFG = {
         fmts: ["MP4", "MOV", "AVI", "MKV", "WEBM"],
         metrics: [
             { n: "Temporal Consistency", c: "var(--danger2)" },
-            { n: "Lip-Sync Alignment", c: "var(--gold)" },
-            { n: "Motion Artifacts", c: "var(--warn2)" },
-            { n: "Frame Coherence", c: "var(--safe2)" }
+            { n: "Lip-Sync Alignment",   c: "var(--gold)" },
+            { n: "Motion Artifacts",     c: "var(--warn2)" },
+            { n: "Frame Coherence",      c: "var(--safe2)" }
         ],
         steps: ["Frame Extraction", "Face Tracking", "Temporal Analysis", "Lip-Sync Check", "Report Generation"],
         results: [
-            { code: "SYS-01", name: "Face Swap", desc: "Inter-frame face boundary and blending artifacts across sequence" },
-            { code: "SYS-02", name: "Lip Sync", desc: "Audio-visual alignment consistency and phoneme mapping" },
+            { code: "SYS-01", name: "Face Swap",   desc: "Inter-frame face boundary and blending artifacts across sequence" },
+            { code: "SYS-02", name: "Lip Sync",    desc: "Audio-visual alignment consistency and phoneme mapping" },
             { code: "SYS-03", name: "Motion Flow", desc: "Optical flow coherence and unnatural motion detection" }
         ]
     },
@@ -41,30 +41,45 @@ const CFG = {
         fmts: ["WAV", "MP3", "FLAC", "OGG", "M4A", "AAC"],
         metrics: [
             { n: "Spectral Artifacts", c: "var(--danger2)" },
-            { n: "Prosody Score", c: "var(--gold)" },
-            { n: "Voice Embedding Δ", c: "var(--warn2)" },
+            { n: "Prosody Score",      c: "var(--gold)" },
+            { n: "Voice Embedding Δ",  c: "var(--warn2)" },
             { n: "Breath Naturalness", c: "var(--safe2)" }
         ],
         steps: ["Audio Decoding", "Spectrogram Analysis", "Voice Embedding", "Prosody Check", "Report Generation"],
         results: [
-            { code: "SYS-01", name: "Voice Cloning", desc: "Latent voice embedding similarity and TTS artifact identification" },
-            { code: "SYS-02", name: "Spectrogram", desc: "MFCC deviation and spectral synthesis marker detection" },
+            { code: "SYS-01", name: "Voice Cloning",    desc: "Latent voice embedding similarity and TTS artifact identification" },
+            { code: "SYS-02", name: "Spectrogram",      desc: "MFCC deviation and spectral synthesis marker detection" },
             { code: "SYS-03", name: "Prosody & Rhythm", desc: "Unnatural stress, pacing and breathing pattern analysis" }
         ]
     },
     signature: {
         fmts: ["JPG", "PNG", "PDF", "TIFF", "BMP"],
         metrics: [
-            { n: "Stroke Velocity", c: "var(--danger2)" },
+            { n: "Stroke Velocity",   c: "var(--danger2)" },
             { n: "Pressure Variance", c: "var(--gold)" },
-            { n: "Tremor Analysis", c: "var(--warn2)" },
-            { n: "Loop Consistency", c: "var(--safe2)" }
+            { n: "Tremor Analysis",   c: "var(--warn2)" },
+            { n: "Loop Consistency",  c: "var(--safe2)" }
         ],
         steps: ["Image Preprocessing", "Stroke Segmentation", "Dynamic Analysis", "Template Matching", "Report Generation"],
         results: [
             { code: "SYS-01", name: "Stroke Dynamics", desc: "Velocity, pressure and pen-lift pattern forensic analysis" },
             { code: "SYS-02", name: "Geometric Match", desc: "Reference template comparison via Dynamic Time Warping" },
-            { code: "SYS-03", name: "Writer Verify", desc: "Neural handwriting style embedding match and comparison" }
+            { code: "SYS-03", name: "Writer Verify",   desc: "Neural handwriting style embedding match and comparison" }
+        ]
+    },
+    text: {
+        fmts: [],
+        metrics: [
+            { n: "Linguistic Patterns",  c: "var(--danger2)" },
+            { n: "Sentence Uniformity",  c: "var(--gold)" },
+            { n: "Vocabulary Diversity", c: "var(--warn2)" },
+            { n: "Naturalness Score",    c: "var(--safe2)" }
+        ],
+        steps: ["Tokenization", "Embedding Extraction", "RoBERTa Encoding", "Classifier Pass", "XAI Generation"],
+        results: [
+            { code: "SYS-01", name: "Linguistic Forensics", desc: "Token-level attention analysis for AI-generated pattern detection" },
+            { code: "SYS-02", name: "Sentence Analysis",    desc: "Per-sentence synthetic probability scoring across the document" },
+            { code: "SYS-03", name: "Style Fingerprint",    desc: "Vocabulary diversity and structural uniformity markers" }
         ]
     }
 };
@@ -80,13 +95,12 @@ function StarCanvas() {
         let W = 0, H = 0, raf, lastTs = 0;
 
         function resize() {
-            W = c.width = window.innerWidth;
+            W = c.width  = window.innerWidth;
             H = c.height = window.innerHeight;
         }
         resize();
         window.addEventListener("resize", resize);
 
-        // Stars in pixel coords, velocity in pixels-per-second
         const stars = Array.from({ length: 320 }, () => ({
             x: Math.random() * (W || window.innerWidth),
             y: Math.random() * ((H || window.innerHeight) * 0.65),
@@ -94,17 +108,14 @@ function StarCanvas() {
             baseOp: Math.random() * 0.65 + 0.25,
             twinkleSpeed: Math.random() * 1.5 + 0.5,
             phase: Math.random() * Math.PI * 2,
-            vx: (Math.random() - 0.5) * 10,   // ±10 px/sec drift
-            vy: (Math.random() - 0.5) * 3.5,  // ±3.5 px/sec vertical
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 3.5,
             warm: Math.random() < 0.18,
         }));
 
-        // Shooting star
         let shoot = null;
         let nextShootDelay = 2000 + Math.random() * 3000;
         let shootTimer = 0;
-
-        // Crossing stars (travel across the sky)
         let crossers = [];
         let nextCrossDelay = 4000 + Math.random() * 4000;
         let crossTimer = 0;
@@ -130,36 +141,30 @@ function StarCanvas() {
                 y: H * 0.02 + Math.random() * H * 0.25,
                 len: 140 + Math.random() * 100,
                 age: 0,
-                life: 900, // ms
+                life: 900,
                 angle: Math.PI / 4 + (Math.random() - 0.5) * 0.5,
             };
         }
 
         function draw(ts) {
-            const dt = Math.min((ts - lastTs) / 1000, 0.05); // seconds, capped at 50ms
+            const dt = Math.min((ts - lastTs) / 1000, 0.05);
             lastTs = ts;
-
             ctx.clearRect(0, 0, W, H);
             const t = ts / 1000;
 
-            // Move & draw each star
             stars.forEach(s => {
                 s.x += s.vx * dt;
                 s.y += s.vy * dt;
-                // Wrap at edges
-                if (s.x < -4) s.x = W + 4;
-                if (s.x > W + 4) s.x = -4;
-                if (s.y < -4) s.y = H * 0.65;
+                if (s.x < -4)       s.x = W + 4;
+                if (s.x > W + 4)    s.x = -4;
+                if (s.y < -4)       s.y = H * 0.65;
                 if (s.y > H * 0.65) s.y = -4;
-
                 const twinkle = 0.45 + 0.55 * Math.sin(t * s.twinkleSpeed + s.phase);
                 const o = s.baseOp * twinkle;
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
                 ctx.fillStyle = s.warm ? `rgba(255,228,160,${o})` : `rgba(235,242,255,${o})`;
                 ctx.fill();
-
-                // Cross sparkle on bright large stars
                 if (s.r > 1.3 && o > 0.5) {
                     const sl = s.r * 3.5;
                     ctx.globalAlpha = o * 0.4;
@@ -171,7 +176,6 @@ function StarCanvas() {
                 }
             });
 
-            // Shooting star logic
             shootTimer += dt * 1000;
             if (shootTimer >= nextShootDelay && !shoot) {
                 spawnShoot();
@@ -203,7 +207,6 @@ function StarCanvas() {
                 }
             }
 
-            // Crossing stars logic
             crossTimer += dt * 1000;
             if (crossTimer >= nextCrossDelay && crossers.length < 3) {
                 spawnCrosser();
@@ -215,10 +218,10 @@ function StarCanvas() {
                 c.x += c.vx * dt;
                 c.y += c.vy * dt;
                 if (c.life >= c.maxLife || c.x < -200 || c.x > W + 200) return false;
-                const prog = c.life / c.maxLife;
+                const prog  = c.life / c.maxLife;
                 const alpha = prog < 0.15 ? prog / 0.15 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
                 const tailX = c.x - Math.sign(c.vx) * c.tailLen;
-                const grad = ctx.createLinearGradient(tailX, c.y, c.x, c.y);
+                const grad  = ctx.createLinearGradient(tailX, c.y, c.x, c.y);
                 grad.addColorStop(0, 'rgba(255,245,210,0)');
                 grad.addColorStop(1, c.warm ? `rgba(255,220,140,${alpha * 0.85})` : `rgba(200,225,255,${alpha * 0.85})`);
                 ctx.save();
@@ -228,7 +231,6 @@ function StarCanvas() {
                 ctx.moveTo(tailX, c.y);
                 ctx.lineTo(c.x, c.y);
                 ctx.stroke();
-                // head dot
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, c.r * 1.5, 0, Math.PI * 2);
                 ctx.fillStyle = c.warm ? `rgba(255,230,160,${alpha})` : `rgba(220,235,255,${alpha})`;
@@ -280,7 +282,7 @@ function SandDunes() {
 
 /* ── CURSOR ── */
 function Cursor() {
-    const curRef = useRef(null);
+    const curRef  = useRef(null);
     const ringRef = useRef(null);
     useEffect(() => {
         let mx = 0, my = 0, rx = 0, ry = 0, raf;
@@ -288,7 +290,7 @@ function Cursor() {
             mx = e.clientX; my = e.clientY;
             if (curRef.current) {
                 curRef.current.style.left = (mx - 3) + "px";
-                curRef.current.style.top = (my - 3) + "px";
+                curRef.current.style.top  = (my - 3) + "px";
             }
         };
         document.addEventListener("mousemove", onMove);
@@ -296,14 +298,14 @@ function Cursor() {
             rx += (mx - rx - 12) * .1; ry += (my - ry - 12) * .1;
             if (ringRef.current) {
                 ringRef.current.style.left = rx + "px";
-                ringRef.current.style.top = ry + "px";
+                ringRef.current.style.top  = ry + "px";
             }
             raf = requestAnimationFrame(loop);
         }
         loop();
         const addHov = () => {
             document.querySelectorAll("button,.mode-tile,.drop-zone,.stat,.result-card,.t-row").forEach(el => {
-                el.addEventListener("mouseenter", () => { curRef.current?.classList.add("hov"); ringRef.current?.classList.add("hov"); });
+                el.addEventListener("mouseenter", () => { curRef.current?.classList.add("hov");    ringRef.current?.classList.add("hov"); });
                 el.addEventListener("mouseleave", () => { curRef.current?.classList.remove("hov"); ringRef.current?.classList.remove("hov"); });
             });
         };
@@ -312,7 +314,7 @@ function Cursor() {
     }, []);
     return (
         <>
-            <div ref={curRef} className="cursor" />
+            <div ref={curRef}  className="cursor" />
             <div ref={ringRef} className="cursor-ring" />
         </>
     );
@@ -324,13 +326,13 @@ function VerdictRing({ score, color, glow }) {
     return (
         <div className="vring">
             <svg width="118" height="118" viewBox="0 0 110 110" style={{ transform: "rotate(-90deg)" }}>
-                <circle className="vr-bg" cx="55" cy="55" r="47" />
+                <circle className="vr-bg"    cx="55" cy="55" r="47" />
                 <circle className="vr-track" cx="55" cy="55" r="47" />
-                <circle className="vr-fill" cx="55" cy="55" r="47"
+                <circle className="vr-fill"  cx="55" cy="55" r="47"
                     style={{
                         strokeDashoffset: offset,
-                        stroke: color || "var(--rim2)",
-                        filter: glow ? `drop-shadow(0 0 8px ${glow})` : "none"
+                        stroke:           color || "var(--rim2)",
+                        filter:           glow ? `drop-shadow(0 0 8px ${glow})` : "none"
                     }}
                 />
                 <circle className="vr-spin" cx="55" cy="55" r="52" />
@@ -365,10 +367,10 @@ function MetricBar({ name, color, value, label }) {
 /* ── RESULT CARD ── */
 function ResultCard({ code, name, desc, score, mode, visible }) {
     const fake = score > 68, unc = score >= 45 && score <= 68;
-    const cls = fake ? "v-fake" : unc ? "v-unc" : "v-real";
-    const lbl = fake ? (mode === "signature" ? "Forged" : "Synthetic") : unc ? "Inconclusive" : "Authentic";
-    const clr = fake ? "var(--danger2)" : unc ? "var(--warn2)" : "var(--safe2)";
-    const g = fake ? "rgba(232,115,107,.28)" : unc ? "rgba(212,165,85,.28)" : "rgba(104,212,174,.28)";
+    const cls  = fake ? "v-fake" : unc ? "v-unc" : "v-real";
+    const lbl  = fake ? (mode === "signature" ? "Forged" : "Synthetic") : unc ? "Inconclusive" : "Authentic";
+    const clr  = fake ? "var(--danger2)" : unc ? "var(--warn2)" : "var(--safe2)";
+    const g    = fake ? "rgba(232,115,107,.28)" : unc ? "rgba(212,165,85,.28)" : "rgba(104,212,174,.28)";
     return (
         <div className="result-card">
             <div className="rc-code">
@@ -377,9 +379,8 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
             </div>
             <div className="rc-name">{name}</div>
             <div className="rc-score" style={{
-                color: clr,
-                textShadow: `0 0 22px ${g}`,
-                opacity: visible ? 1 : 0,
+                color: clr, textShadow: `0 0 22px ${g}`,
+                opacity:   visible ? 1 : 0,
                 transform: visible ? "translateY(0)" : "translateY(10px)",
                 transition: "opacity .65s ease, transform .65s ease"
             }}>
@@ -390,78 +391,191 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
     );
 }
 
-/* ── HERO STATS STRIP (Optional Enhancement) ── */
-function HeroStats() {
-    const stats = [
-        { val: "99.4%", label: "Detection Accuracy" },
-        { val: "12ms", label: "Analysis Latency" },
-        { val: "4", label: "Detection Modes" },
-        { val: "∞", label: "Files Processed" },
-    ];
+/* ── XAI PANEL ── */
+function XAIPanel({ xaiData, sentenceScores, isFake }) {
+    if (!xaiData || xaiData.length === 0) return null;
+
     return (
-        <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 1,
-            background: "rgba(232,192,64,0.10)",
-            border: "1px solid rgba(232,192,64,0.14)",
-            borderRadius: 12,
-            overflow: "hidden",
-            animation: "fadeUp .8s var(--ease-out) .9s both",
-            marginTop: 32,
-        }}>
-            {stats.map((s, i) => (
-                <div key={i} style={{
-                    background: "rgba(4,6,12,0.96)",
-                    padding: "18px 20px",
-                    textAlign: "center",
-                    borderRight: i < 3 ? "1px solid rgba(232,192,64,0.08)" : "none",
-                }}>
-                    <div style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 28,
-                        fontWeight: 300,
-                        color: "var(--gold)",
-                        textShadow: "0 0 30px rgba(232,192,64,0.35)",
-                        marginBottom: 4,
-                    }}>{s.val}</div>
-                    <div style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 7,
-                        letterSpacing: 2,
-                        color: "var(--sand-mid)",
-                        textTransform: "uppercase",
-                    }}>{s.label}</div>
+        <div style={{ marginBottom: 48 }}>
+            <div className="sec-head" style={{ marginBottom: 18 }}>Explainability · Why This Prediction</div>
+
+            {/* ── Token Heatmap ── */}
+            <div className="panel" style={{ marginBottom: 20, padding: "24px 28px" }}>
+                <div className="panel-head" style={{ marginBottom: 16 }}>
+                    <div className="panel-label">Token Attention Heatmap</div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: 1 }}>
+                        DARKER = MORE INFLUENCE ON PREDICTION
+                    </div>
                 </div>
-            ))}
+                <div style={{ lineHeight: 2.4, fontSize: 13, fontFamily: "Georgia, serif", letterSpacing: 0.2 }}>
+                    {xaiData.map((t, i) => {
+                        const imp = t.importance;
+                        const r   = isFake ? Math.round(180 + imp * 75) : Math.round(40  + imp * 40);
+                        const g   = isFake ? Math.round(60  + imp * 20) : Math.round(150 + imp * 60);
+                        const b   = isFake ? Math.round(60  + imp * 20) : Math.round(80  + imp * 40);
+                        const a   = 0.08 + imp * 0.72;
+                        return (
+                            <span
+                                key={i}
+                                title={`Attention weight: ${(imp * 100).toFixed(1)}%`}
+                                style={{
+                                    backgroundColor: `rgba(${r},${g},${b},${a})`,
+                                    borderRadius: 3,
+                                    padding: "2px 3px",
+                                    margin: "0 1px",
+                                    cursor: "default",
+                                    color:      imp > 0.6 ? "var(--sand-light)" : "var(--ghost)",
+                                    fontWeight: imp > 0.7 ? 600 : 400,
+                                    transition: "background-color 0.2s",
+                                }}
+                            >
+                                {t.token}
+                            </span>
+                        );
+                    })}
+                </div>
+                {/* Legend */}
+                <div style={{ marginTop: 18, display: "flex", gap: 8, alignItems: "center" }}>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: 1, marginRight: 4 }}>
+                        INFLUENCE
+                    </div>
+                    {[0.08, 0.24, 0.44, 0.62, 0.80].map((v, i) => {
+                        const imp = v;
+                        const r   = isFake ? Math.round(180 + imp * 75) : Math.round(40  + imp * 40);
+                        const g   = isFake ? Math.round(60  + imp * 20) : Math.round(150 + imp * 60);
+                        const b   = isFake ? Math.round(60  + imp * 20) : Math.round(80  + imp * 40);
+                        const a   = 0.08 + imp * 0.72;
+                        return (
+                            <div key={i} style={{
+                                width: 32, height: 16, borderRadius: 3,
+                                background: `rgba(${r},${g},${b},${a})`,
+                                border: "1px solid rgba(255,255,255,0.06)",
+                            }} />
+                        );
+                    })}
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: 1, marginLeft: 4 }}>
+                        LOW → HIGH
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Top Tokens Bar Chart ── */}
+            <div className="panel" style={{ marginBottom: 20, padding: "24px 28px" }}>
+                <div className="panel-head" style={{ marginBottom: 16 }}>
+                    <div className="panel-label">Top Influential Tokens</div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: 1 }}>
+                        RANKED BY ATTENTION WEIGHT
+                    </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[...xaiData]
+                        .sort((a, b) => b.importance - a.importance)
+                        .slice(0, 10)
+                        .map((t, i) => (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <div style={{
+                                    fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+                                    color: "var(--sand-mid)", width: 130, flexShrink: 0,
+                                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                }}>
+                                    {t.token}
+                                </div>
+                                <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 4, height: 10, overflow: "hidden" }}>
+                                    <div style={{
+                                        width: `${t.importance * 100}%`,
+                                        height: "100%",
+                                        background: isFake
+                                            ? "linear-gradient(90deg, var(--danger2), rgba(232,115,107,0.4))"
+                                            : "linear-gradient(90deg, var(--safe2),   rgba(104,212,174,0.4))",
+                                        borderRadius: 4,
+                                        transition: "width 0.9s cubic-bezier(.22,1,.36,1)",
+                                    }} />
+                                </div>
+                                <div style={{
+                                    fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
+                                    color: "var(--ghost)", width: 44, textAlign: "right", flexShrink: 0,
+                                }}>
+                                    {(t.importance * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        ))}
+                </div>
+            </div>
+
+            {/* ── Sentence Breakdown ── */}
+            {sentenceScores && sentenceScores.length > 0 && (
+                <div className="panel" style={{ padding: "24px 28px" }}>
+                    <div className="panel-head" style={{ marginBottom: 16 }}>
+                        <div className="panel-label">Sentence-Level Breakdown</div>
+                        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: 1 }}>
+                            PER-SENTENCE SYNTHETIC PROBABILITY
+                        </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        {sentenceScores.map((s, i) => {
+                            const f   = s.fake_probability > 68;
+                            const u   = s.fake_probability >= 45;
+                            const clr = f ? "var(--danger2)" : u ? "var(--warn2)" : "var(--safe2)";
+                            return (
+                                <div key={i} style={{
+                                    background: "rgba(255,255,255,0.025)", borderRadius: 8,
+                                    padding: "14px 16px", borderLeft: `3px solid ${clr}`,
+                                }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "flex-start", gap: 16 }}>
+                                        <div style={{ fontFamily: "Georgia, serif", fontSize: 12, color: "var(--sand-light)", lineHeight: 1.65, flex: 1 }}>
+                                            "{s.sentence}"
+                                        </div>
+                                        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, color: clr, flexShrink: 0, fontWeight: 600 }}>
+                                            {s.fake_probability}%
+                                        </div>
+                                    </div>
+                                    <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 3, height: 4, overflow: "hidden" }}>
+                                        <div style={{
+                                            width: `${s.fake_probability}%`, height: "100%",
+                                            background: clr, borderRadius: 3,
+                                            transition: "width 1.1s cubic-bezier(.22,1,.36,1)",
+                                        }} />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 /* ── MAIN APP ── */
 export default function Miraje() {
     const { currentUser, logout } = useAuth();
     if (!currentUser) return <AuthPage />;
 
-    const [mode, setModeKey] = useState("image");
-    const [fileLoaded, setFileLoaded] = useState(false);
-    const [previewSrc, setPreviewSrc] = useState(null);
-    const [fileName, setFileName] = useState(null);
-    const [fileSize, setFileSize] = useState(null);
-    const [file, setFile] = useState(null);
-    const [scanning, setScanning] = useState(false);
-    const [analysing, setAnalysing] = useState(false);
-    const [pipelineSteps, setPipelineSteps] = useState([]);
-    const [pipelineVisible, setPipelineVisible] = useState(false);
-    const [metrics, setMetrics] = useState([]);
-    const [verdict, setVerdict] = useState({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
-    const [results, setResults] = useState([]);
-    const [visibleScores, setVisibleScores] = useState([]);
-    const [activeNav, setActiveNav] = useState("Analysis");
-    const [audioSrc, setAudioSrc] = useState(null);
-    const [history, setHistory] = useState([]);
+    const [mode, setModeKey]                     = useState("image");
+    const [fileLoaded, setFileLoaded]             = useState(false);
+    const [previewSrc, setPreviewSrc]             = useState(null);
+    const [fileName, setFileName]                 = useState(null);
+    const [fileSize, setFileSize]                 = useState(null);
+    const [file, setFile]                         = useState(null);
+    const [scanning, setScanning]                 = useState(false);
+    const [analysing, setAnalysing]               = useState(false);
+    const [pipelineSteps, setPipelineSteps]       = useState([]);
+    const [pipelineVisible, setPipelineVisible]   = useState(false);
+    const [metrics, setMetrics]                   = useState([]);
+    const [verdict, setVerdict]                   = useState({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
+    const [results, setResults]                   = useState([]);
+    const [visibleScores, setVisibleScores]       = useState([]);
+    const [activeNav, setActiveNav]               = useState("Analysis");
+    const [audioSrc, setAudioSrc]                 = useState(null);
+    const [history, setHistory]                   = useState([]);
+    // ── Text + XAI state ──
+    const [textInput, setTextInput]               = useState("");
+    const [xaiData, setXaiData]                   = useState(null);
+    const [sentenceScores, setSentenceScores]     = useState([]);
+
     const fileRef = useRef(null);
-    const cfg = CFG[mode];
+    const cfg     = CFG[mode];
 
     useEffect(() => {
         setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
@@ -478,6 +592,9 @@ export default function Miraje() {
         setFileLoaded(false); setPreviewSrc(null); setFileName(null); setFileSize(null);
         setFile(null);
         setAudioSrc(null);
+        setTextInput("");
+        setXaiData(null);
+        setSentenceScores([]);
     }
 
     function loadFile(f) {
@@ -501,12 +618,16 @@ export default function Miraje() {
     }
 
     function onDragOver(e) { e.preventDefault(); }
-    function onDrop(e) { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); }
+    function onDrop(e)     { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); }
     function onFilePick(e) { if (e.target.files[0]) loadFile(e.target.files[0]); }
 
     const runAnalysis = useCallback(async () => {
-        if (!fileLoaded || analysing) return;
+        const canRun = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
+        if (!canRun || analysing) return;
+
         setAnalysing(true); setPipelineVisible(true);
+        setXaiData(null); setSentenceScores([]);
+
         const steps = cfg.steps.map(s => ({ label: s, state: "pending" }));
         setPipelineSteps(steps);
         for (let i = 0; i < steps.length; i++) {
@@ -514,49 +635,82 @@ export default function Miraje() {
             await sleep(360 + Math.random() * 260);
             setPipelineSteps(prev => prev.map((s, j) => j === i ? { ...s, state: "done" } : s));
         }
+
         let score = null, prediction = null;
         try {
             const formData = new FormData();
             if (mode === "image") {
                 formData.append("image", file);
-                const res = await fetch("http://localhost:5000/predict-image", { method: "POST", body: formData });
-                const d = await res.json(); score = d.fake_probability; prediction = d.prediction;
+                const res = await fetch("http://localhost:8000/predict-image", { method: "POST", body: formData });
+                const d   = await res.json(); score = d.fake_probability; prediction = d.prediction;
             } else if (mode === "audio") {
                 formData.append("audio", file);
-                const res = await fetch("http://localhost:5000/predict-audio", { method: "POST", body: formData });
-                const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+                const res = await fetch("http://localhost:8000/predict-audio", { method: "POST", body: formData });
+                const d   = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
             } else if (mode === "signature") {
                 formData.append("signature", file);
-                const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
-                const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+                const res = await fetch("http://localhost:8000/predict-signature", { method: "POST", body: formData });
+                const d   = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+            } else if (mode === "text") {
+                const res = await fetch("http://localhost:8000/predict-text", {
+                    method:  "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body:    JSON.stringify({ text: textInput }),
+                });
+                const d = await res.json();
+                score      = d.fake_probability;
+                prediction = d.prediction;
+                setXaiData(d.token_importance  || []);
+                setSentenceScores(d.sentence_scores || []);
             }
-        } catch (err) { console.error("API error:", err); setAnalysing(false); return; }
-        if (score == null) { setAnalysing(false); return; }
+        } catch (err) {
+            console.error("API error:", err);
+            setAnalysing(false);
+            setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Connection Error", note: "Could not reach the backend server" });
+            return;
+        }
+
+        if (score == null) {
+            setAnalysing(false);
+            setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Error", note: "Backend returned invalid response" });
+            return;
+        }
+
         const isFake = prediction === "fake";
-        const isUnc = score >= 45 && score <= 68;
-        const color = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
-        const glow = isFake ? "rgba(232,115,107,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(104,212,174,.4)";
-        const word = isFake ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected") : isUnc ? "Inconclusive" : "Authentic";
+        const isUnc  = score >= 45 && score <= 68;
+        const color  = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
+        const glow   = isFake ? "rgba(232,115,107,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(104,212,174,.4)";
+        const word   = isFake
+            ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected")
+            : isUnc ? "Inconclusive" : "Authentic";
+
         setVerdict({ score, color, glow, word, note: `${score.toFixed(1)}% synthetic probability` });
-        setMetrics(cfg.metrics.map((m, i) => ({ ...m, value: Math.max(0, score - i * 6), label: (Math.max(0, score - i * 6)).toFixed(1) + "%" })));
+        setMetrics(cfg.metrics.map((m, i) => ({
+            ...m,
+            value: Math.max(0, score - i * 6),
+            label: (Math.max(0, score - i * 6)).toFixed(1) + "%"
+        })));
         setResults(cfg.results.map(r => ({ ...r, score })));
         setVisibleScores([]);
         await sleep(80);
         cfg.results.forEach((_, i) => setTimeout(() => setVisibleScores(prev => [...prev, i]), i * 200));
-        const now = new Date();
+
+        const now     = new Date();
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
         setHistory(prev => [{
-            glyph: getModeGlyph(mode), name: fileName, size: fileSize + " MB",
-            type: mode.charAt(0).toUpperCase() + mode.slice(1),
-            cls: isFake ? "v-fake" : isUnc ? "v-unc" : "v-real",
-            lbl: isFake ? (mode === "signature" ? "Forged" : "Synthetic") : isUnc ? "Inconclusive" : "Authentic",
-            conf: score.toFixed(1) + "%", confClr: color, date: dateStr
+            glyph: getModeGlyph(mode),
+            name:  mode === "text" ? `"${textInput.slice(0, 32)}…"` : fileName,
+            size:  mode === "text" ? `${textInput.split(/\s+/).length} words` : fileSize + " MB",
+            type:  mode.charAt(0).toUpperCase() + mode.slice(1),
+            cls:   isFake ? "v-fake" : isUnc ? "v-unc" : "v-real",
+            lbl:   isFake ? (mode === "signature" ? "Forged" : "Synthetic") : isUnc ? "Inconclusive" : "Authentic",
+            conf:  score.toFixed(1) + "%", confClr: color, date: dateStr
         }, ...prev]);
         setAnalysing(false);
-    }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize]);
+    }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize, textInput]);
 
     function getModeGlyph(m) {
-        return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : "✦";
+        return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : m === "text" ? "¶" : "✦";
     }
 
     return (
@@ -600,7 +754,7 @@ export default function Miraje() {
                                 transition: "color .2s, border-color .2s, box-shadow .2s",
                             }}
                             onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(232,115,107,.4)"; }}
-                            onMouseLeave={e => { e.target.style.color = "var(--ghost)"; e.target.style.borderColor = "rgba(232,192,64,0.2)"; }}
+                            onMouseLeave={e => { e.target.style.color = "var(--ghost)";   e.target.style.borderColor = "rgba(232,192,64,0.2)"; }}
                         >
                             Logout
                         </button>
@@ -611,14 +765,10 @@ export default function Miraje() {
             {/* HERO SECTION */}
             <div className="hero">
                 <div className="sky"><StarCanvas /></div>
-
-                {/* SVG sand dune layers */}
                 <SandDunes />
-
                 <div className="horizon-glow" />
                 <div className="horizon-line" />
                 <div className="figure" />
-
                 <div className="pool">
                     {[{ d: "3.2s", delay: "0s", op: .5 }, { d: "4.1s", delay: ".5s", op: .32 }, { d: "3.7s", delay: "1s", op: .2 }, { d: "5s", delay: "1.7s", op: .1 }].map((p, i) => (
                         <div key={i} className="pool-wave" style={{ "--d": p.d, "--delay": p.delay, "--op": p.op, bottom: i * 6 + "px" }} />
@@ -634,14 +784,11 @@ export default function Miraje() {
                         <div key={i} className="ref-band" style={{ "--d": r.d, "--delay": r.delay, "--op": r.op, bottom: i * 7 + "px" }} />
                     ))}
                 </div>
-
                 <div className="scene-label sl-tl">Optical Illusion</div>
                 <div className="scene-label sl-tr">Light · Bending</div>
                 <div className="scene-label sl-horizon">— horizon —</div>
                 <div className="scene-label sl-br">Desert · Mirage · 28.4°N</div>
-
                 <div className="hero-fade" />
-
                 <div className="hero-text">
                     <div className="hero-headline">
                         <h1 className="hero-title">
@@ -654,32 +801,22 @@ export default function Miraje() {
                             <div className="hq-text">A mirage is not a lie. It is light, bending. Deepfakes are the same — truth, refracted through a machine.</div>
                         </div>
                     </div>
-                    {/* FACE IMAGE — right column */}
                     <div className="hero-face-wrap" style={{ animation: "fadeUp 1.1s var(--ease-out) .5s both" }}>
                         <div className="hero-face-frame">
-                            {/* Animated corner brackets */}
                             <div className="hf-corner hf-tl" />
                             <div className="hf-corner hf-tr" />
                             <div className="hf-corner hf-bl" />
                             <div className="hf-corner hf-br" />
-                            {/* Scan line */}
                             <div className="hf-scan" />
-                            {/* The image */}
                             <img src={UIFace} alt="AI face mesh" className="hero-face-img" />
-                            {/* Overlay labels */}
                             <div className="hf-label hf-label-tl">MESH · v4.2</div>
                             <div className="hf-label hf-label-tr">GAN · DETECT</div>
                             <div className="hf-label hf-label-bl">LANDMARK · 468PT</div>
                             <div className="hf-label hf-label-br">ACTIVE</div>
-                            {/* Bottom glow bar */}
                             <div className="hf-glow-bar" />
                         </div>
                     </div>
                 </div>
-
-                {/* Optional Hero Stats Strip - Uncomment if desired */}
-                {/* <HeroStats /> */}
-
                 <div className="scroll-hint">
                     <div className="sh-text">Scroll</div>
                     <div className="sh-line" />
@@ -694,13 +831,14 @@ export default function Miraje() {
                     <div className="sec-head" style={{ marginBottom: 14 }}>Detection Mode</div>
                     <div className="modes">
                         {[
-                            { key: "image", code: "IMG //", name: "Image", desc: "AI-generated and manipulated photograph detection via GAN fingerprinting", flag: "Live" },
-                            { key: "video", code: "VID //", name: "Video", desc: "Frame-by-frame temporal coherence analysis for face swap and synthesis", flag: "Live" },
-                            { key: "audio", code: "AUD //", name: "Audio", desc: "Cloned voice and synthetic speech identification via spectral forensics", flag: "Beta" },
-                            { key: "signature", code: "SIG //", name: "Signature", desc: "Handwritten signature forgery detection using stroke dynamics analysis", flag: "Beta" },
+                            { key: "image",     code: "IMG //", name: "Image",     desc: "AI-generated and manipulated photograph detection via GAN fingerprinting",                    flag: "Live" },
+                            { key: "video",     code: "VID //", name: "Video",     desc: "Frame-by-frame temporal coherence analysis for face swap and synthesis",                     flag: "Live" },
+                            { key: "audio",     code: "AUD //", name: "Audio",     desc: "Cloned voice and synthetic speech identification via spectral forensics",                    flag: "Beta" },
+                            { key: "signature", code: "SIG //", name: "Signature", desc: "Handwritten signature forgery detection using stroke dynamics analysis",                    flag: "Beta" },
+                            { key: "text",      code: "TXT //", name: "Text",      desc: "AI-generated text detection via RoBERTa linguistic forensics and attention analysis",       flag: "New"  },
                         ].map(m => (
                             <div key={m.key} className={`mode-tile${mode === m.key ? " active" : ""}`} onClick={() => handleSetMode(m.key)}>
-                                <div className={`mode-flag ${m.flag === "Live" ? "flag-live" : "flag-beta"}`}>{m.flag}</div>
+                                <div className={`mode-flag ${m.flag === "Live" ? "flag-live" : m.flag === "New" ? "flag-live" : "flag-beta"}`}>{m.flag}</div>
                                 <div className="mode-code">{m.code}</div>
                                 <div className="mode-name">{m.name}</div>
                                 <div className="mode-desc">{m.desc}</div>
@@ -710,31 +848,71 @@ export default function Miraje() {
 
                     {/* WORKSPACE */}
                     <div className="workspace">
-                        {/* DROP ZONE */}
-                        <div className="drop-zone" onDragOver={onDragOver} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
-                            <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
-                            {scanning && <div className="scan-beam" />}
-                            {previewSrc
-                                ? <img className="preview-img" src={previewSrc} alt="preview" />
-                                : audioSrc
-                                    ? <div className="drop-inner">
-                                        <div className="drop-title">{fileName}</div>
-                                        <div className="drop-sub">{fileSize} MB — ready</div>
-                                        <audio controls src={audioSrc} style={{ width: "100%", marginTop: 16, accentColor: "var(--gold)", filter: "invert(1) hue-rotate(180deg)" }} />
+
+                        {/* DROP ZONE — file modes vs text mode */}
+                        {mode === "text" ? (
+                            <div className="drop-zone" style={{ cursor: "default" }}>
+                                <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
+                                <div className="drop-inner" style={{ width: "100%", padding: "24px 28px", boxSizing: "border-box" }}>
+                                    <div className="drop-title" style={{ marginBottom: 12 }}>Paste Text for Analysis</div>
+                                    <textarea
+                                        value={textInput}
+                                        onChange={e => setTextInput(e.target.value)}
+                                        onClick={e => e.stopPropagation()}
+                                        placeholder="Paste any text here — article, essay, email, social post — and the AI will determine if it was machine-generated..."
+                                        style={{
+                                            width: "100%", minHeight: 220,
+                                            background: "rgba(4,6,12,0.7)",
+                                            border: "1px solid rgba(232,192,64,0.18)",
+                                            borderRadius: 8,
+                                            color: "var(--sand-light)",
+                                            fontFamily: "'JetBrains Mono', monospace",
+                                            fontSize: 11, lineHeight: 1.7,
+                                            padding: "14px 16px",
+                                            resize: "vertical", outline: "none",
+                                            boxSizing: "border-box", cursor: "text",
+                                        }}
+                                    />
+                                    <div style={{
+                                        display: "flex", justifyContent: "space-between", marginTop: 10,
+                                        fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
+                                        color: "var(--fog)", letterSpacing: 1,
+                                    }}>
+                                        <span>
+                                            {textInput.length} chars · {textInput.trim() ? textInput.trim().split(/\s+/).length : 0} words
+                                        </span>
+                                        <span style={{ color: textInput.trim().length < 20 ? "var(--danger2)" : "var(--safe2)" }}>
+                                            {textInput.trim().length < 20 ? "⚠ Minimum 20 characters" : "✓ Ready"}
+                                        </span>
                                     </div>
-                                    : <div className="drop-inner">
-                                        <div className="drop-mirage">
-                                            {[{ d: "0s", op: .75 }, { d: ".4s", op: .46 }, { d: ".8s", op: .28 }, { d: "1.2s", op: .15 }, { d: "1.6s", op: .07 }].map((l, i) => (
-                                                <div key={i} className="dm-line" style={{ "--delay": l.d, opacity: l.op, top: i * 8 + "px" }} />
-                                            ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="drop-zone" onDragOver={onDragOver} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
+                                <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
+                                {scanning && <div className="scan-beam" />}
+                                {previewSrc
+                                    ? <img className="preview-img" src={previewSrc} alt="preview" />
+                                    : audioSrc
+                                        ? <div className="drop-inner">
+                                            <div className="drop-title">{fileName}</div>
+                                            <div className="drop-sub">{fileSize} MB — ready</div>
+                                            <audio controls src={audioSrc} style={{ width: "100%", marginTop: 16, accentColor: "var(--gold)", filter: "invert(1) hue-rotate(180deg)" }} />
                                         </div>
-                                        <div className="drop-title">{fileName || "Submit for analysis"}</div>
-                                        <div className="drop-sub">{fileSize ? `${fileSize} MB — ready` : "Drag & drop your file here,\nor select from your device."}</div>
-                                        <div className="drop-fmts">{cfg.fmts.map(f => <span key={f} className="dfmt">{f}</span>)}</div>
-                                        <button className="drop-cta" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}><span>Browse Files</span></button>
-                                    </div>
-                            }
-                        </div>
+                                        : <div className="drop-inner">
+                                            <div className="drop-mirage">
+                                                {[{ d: "0s", op: .75 }, { d: ".4s", op: .46 }, { d: ".8s", op: .28 }, { d: "1.2s", op: .15 }, { d: "1.6s", op: .07 }].map((l, i) => (
+                                                    <div key={i} className="dm-line" style={{ "--delay": l.d, opacity: l.op, top: i * 8 + "px" }} />
+                                                ))}
+                                            </div>
+                                            <div className="drop-title">{fileName || "Submit for analysis"}</div>
+                                            <div className="drop-sub">{fileSize ? `${fileSize} MB — ready` : "Drag & drop your file here,\nor select from your device."}</div>
+                                            <div className="drop-fmts">{cfg.fmts.map(f => <span key={f} className="dfmt">{f}</span>)}</div>
+                                            <button className="drop-cta" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}><span>Browse Files</span></button>
+                                        </div>
+                                }
+                            </div>
+                        )}
                         <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: "none" }} />
 
                         {/* SIDEBAR */}
@@ -777,13 +955,22 @@ export default function Miraje() {
                                 </div>
                             </div>
 
-                            <button className="run-btn" disabled={!fileLoaded || analysing} onClick={runAnalysis}>
-                                <span>{!fileLoaded ? "No File Selected" : analysing ? "Analysing…" : "Initiate Analysis"}</span>
+                            <button
+                                className="run-btn"
+                                disabled={(mode === "text" ? textInput.trim().length < 20 : !fileLoaded) || analysing}
+                                onClick={runAnalysis}
+                            >
+                                <span>
+                                    {mode === "text"
+                                        ? (textInput.trim().length < 20 ? "Enter Text First" : analysing ? "Analysing…" : "Initiate Analysis")
+                                        : (!fileLoaded ? "No File Selected" : analysing ? "Analysing…" : "Initiate Analysis")
+                                    }
+                                </span>
                             </button>
                         </div>
                     </div>
 
-                    {/* RESULTS */}
+                    {/* SUBSYSTEM RESULTS */}
                     {results.length > 0 && (
                         <div style={{ marginBottom: 48 }}>
                             <div className="sec-head" style={{ marginBottom: 18 }}>Subsystem Results</div>
@@ -791,6 +978,15 @@ export default function Miraje() {
                                 {results.map((r, i) => <ResultCard key={i} {...r} mode={mode} visible={visibleScores.includes(i)} />)}
                             </div>
                         </div>
+                    )}
+
+                    {/* XAI — text mode only */}
+                    {mode === "text" && (
+                        <XAIPanel
+                            xaiData={xaiData}
+                            sentenceScores={sentenceScores}
+                            isFake={verdict.score != null && verdict.score > 50}
+                        />
                     )}
 
                     {/* HISTORY TABLE */}
