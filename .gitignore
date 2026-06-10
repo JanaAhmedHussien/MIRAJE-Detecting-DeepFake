@@ -6,7 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+__pycache__/
+*.pyc
 node_modules
 dist
 dist-ssr
@@ -27,3 +28,4 @@ dist-ssr
 backend/image_module.pth
 backend/audio_model.keras
 backend/signature_forgery_detector.keras
+backend/final_model.pt
