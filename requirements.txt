@@ -17,6 +17,10 @@ librosa
 # Signature Service
 opencv-python
 
+# Video Service
+timm
+facenet_pytorch
+
 # Testing
 locust
 
@@ -25,3 +29,4 @@ mlflow
 
 # Common
 numpy
+
