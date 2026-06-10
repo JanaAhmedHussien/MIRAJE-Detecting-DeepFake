@@ -1,0 +1,32 @@
+# Gateway
+fastapi
+uvicorn
+httpx
+python-multipart
+
+# Image Service
+torch
+torchvision
+transformers
+pillow
+
+# Audio Service
+tensorflow==2.20.0
+librosa
+
+# Signature Service
+opencv-python
+
+# Video Service
+timm
+facenet_pytorch
+
+# Testing
+locust
+
+# Monitoring
+mlflow
+
+# Common
+numpy
+

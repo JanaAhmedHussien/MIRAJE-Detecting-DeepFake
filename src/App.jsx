@@ -464,7 +464,12 @@ export default function App() {
         formData.append("signature", file);
         const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
         const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+      } else if (mode === "video") {
+        formData.append("video", file);
+        const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
+        const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
       }
+      
     } catch (err) { console.error("API error:", err); setAnalysing(false); return; }
     if (score == null) { setAnalysing(false); return; }
     const isFake = prediction === "fake";

@@ -649,33 +649,19 @@ export default function Miraje() {
                 const d   = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
             } else if (mode === "signature") {
                 formData.append("signature", file);
-                const res = await fetch("http://localhost:8000/predict-signature", { method: "POST", body: formData });
-                const d   = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
-            } else if (mode === "text") {
-                const res = await fetch("http://localhost:8000/predict-text", {
-                    method:  "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body:    JSON.stringify({ text: textInput }),
-                });
+                const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
+                const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+    
+            } else if (mode === "video") {
+                formData.append("video", file);
+                const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
                 const d = await res.json();
-                score      = d.fake_probability;
+                score = d.fake_probability;
                 prediction = d.prediction;
-                setXaiData(d.token_importance  || []);
-                setSentenceScores(d.sentence_scores || []);
             }
-        } catch (err) {
-            console.error("API error:", err);
-            setAnalysing(false);
-            setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Connection Error", note: "Could not reach the backend server" });
-            return;
-        }
 
-        if (score == null) {
-            setAnalysing(false);
-            setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Error", note: "Backend returned invalid response" });
-            return;
-        }
-
+        } catch (err) { console.error("API error:", err); setAnalysing(false); return; }
+        if (score == null) { setAnalysing(false); return; }
         const isFake = prediction === "fake";
         const isUnc  = score >= 45 && score <= 68;
         const color  = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
