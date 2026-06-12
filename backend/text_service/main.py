@@ -85,7 +85,7 @@ class LinguisticFeatureExtractor:
 class RoBERTaAIDetector(nn.Module):
     def __init__(self, model_name='roberta-base', dropout=0.5, n_ling_features=8):
         super().__init__()
-        self.roberta = AutoModel.from_pretrained(model_name)
+        self.roberta = AutoModel.from_pretrained(model_name, attn_implementation="eager")
 
         # Freeze first 6 layers (matches training)
         for layer_idx, layer in enumerate(self.roberta.encoder.layer):

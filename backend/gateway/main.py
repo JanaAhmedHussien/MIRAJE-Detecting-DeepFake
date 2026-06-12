@@ -27,22 +27,44 @@ def root():
     }
 
 
+
 @app.get("/health")
 async def health():
-    async with httpx.AsyncClient(timeout=10) as client:
-        image_status = await client.get(f"{IMAGE_SERVICE}/health")
-        audio_status = await client.get(f"{AUDIO_SERVICE}/health")
-        sig_status   = await client.get(f"{SIGNATURE_SERVICE}/health")
-        video_status = await client.get(f"{VIDEO_SERVICE}/health")
-    return {
-        "gateway": "running",
-        "services": {
-            "image":     image_status.json(),
-            "audio":     audio_status.json(),
-            "signature": sig_status.json(),
-            "video":     video_status.json(),
-        }
-    }
+    status = {"status": "gateway running", "services": {}}
+
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(f"{IMAGE_SERVICE}/health")
+            status["services"]["image"] = r.json().get("status")
+        except:
+            status["services"]["image"] = "offline"
+
+        try:
+            r = await client.get(f"{AUDIO_SERVICE}/health")
+            status["services"]["audio"] = r.json().get("status")
+        except:
+            status["services"]["audio"] = "offline"
+
+        try:
+            r = await client.get(f"{VIDEO_SERVICE}/health")
+            status["services"]["videi"] = r.json().get("status")
+        except:
+            status["services"]["video"] = "offline"
+
+        try:
+            r = await client.get(f"{SIGNATURE_SERVICE}/health")
+            status["services"]["signature"] = r.json().get("status")
+        except:
+            status["services"]["signature"] = "offline"
+
+
+        try:
+            r = await client.get(f"{TEXT_SERVICE}/health")
+            status["services"]["text"] = r.json().get("status")
+        except:
+            status["services"]["text"] = "offline"
+
+    return status
 
 
 @app.post("/predict-image")
@@ -87,3 +109,14 @@ async def predict_video(video: UploadFile = File(...)):
             files={"video": (video.filename, contents, video.content_type)}
         )
     return response.json()
+
+
+@app.post("/predict-text")
+async def predict_text(input: dict):
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(
+            f"{TEXT_SERVICE}/predict-text",
+            json=input,
+        )
+
+        return response.json()

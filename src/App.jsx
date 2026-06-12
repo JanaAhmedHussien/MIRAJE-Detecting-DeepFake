@@ -9,15 +9,15 @@ const CFG = {
   image: {
     fmts: ["JPG", "PNG", "WEBP", "GIF", "BMP", "TIFF"],
     metrics: [
-      { n: "GAN Fingerprint",     c: "var(--danger2)" },
-      { n: "Frequency Anomaly",   c: "var(--gold)" },
+      { n: "GAN Fingerprint", c: "var(--danger2)" },
+      { n: "Frequency Anomaly", c: "var(--gold)" },
       { n: "Face Landmark Drift", c: "var(--warn2)" },
-      { n: "Compression Traces",  c: "var(--safe2)" }
+      { n: "Compression Traces", c: "var(--safe2)" }
     ],
     steps: ["Preprocessing", "Feature Extraction", "GAN Classifier", "Frequency Analysis", "Report Generation"],
     results: [
-      { code: "SYS-01", name: "Face Analysis",     desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
-      { code: "SYS-02", name: "Frequency Domain",  desc: "DCT & Fourier transform artifact detection in latent space" },
+      { code: "SYS-01", name: "Face Analysis", desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
+      { code: "SYS-02", name: "Frequency Domain", desc: "DCT & Fourier transform artifact detection in latent space" },
       { code: "SYS-03", name: "Texture Forensics", desc: "Pixel-level GAN fingerprint extraction and classification" }
     ]
   },
@@ -25,45 +25,60 @@ const CFG = {
     fmts: ["MP4", "MOV", "AVI", "MKV", "WEBM"],
     metrics: [
       { n: "Temporal Consistency", c: "var(--danger2)" },
-      { n: "Lip-Sync Alignment",   c: "var(--gold)" },
-      { n: "Motion Artifacts",     c: "var(--warn2)" },
-      { n: "Frame Coherence",      c: "var(--safe2)" }
+      { n: "Lip-Sync Alignment", c: "var(--gold)" },
+      { n: "Motion Artifacts", c: "var(--warn2)" },
+      { n: "Frame Coherence", c: "var(--safe2)" }
     ],
     steps: ["Frame Extraction", "Face Tracking", "Temporal Analysis", "Lip-Sync Check", "Report Generation"],
     results: [
-      { code: "SYS-01", name: "Face Swap",    desc: "Inter-frame face boundary and blending artifacts across sequence" },
-      { code: "SYS-02", name: "Lip Sync",     desc: "Audio-visual alignment consistency and phoneme mapping" },
-      { code: "SYS-03", name: "Motion Flow",  desc: "Optical flow coherence and unnatural motion detection" }
+      { code: "SYS-01", name: "Face Swap", desc: "Inter-frame face boundary and blending artifacts across sequence" },
+      { code: "SYS-02", name: "Lip Sync", desc: "Audio-visual alignment consistency and phoneme mapping" },
+      { code: "SYS-03", name: "Motion Flow", desc: "Optical flow coherence and unnatural motion detection" }
     ]
   },
   audio: {
     fmts: ["WAV", "MP3", "FLAC", "OGG", "M4A", "AAC"],
     metrics: [
-      { n: "Spectral Artifacts",  c: "var(--danger2)" },
-      { n: "Prosody Score",       c: "var(--gold)" },
-      { n: "Voice Embedding Δ",   c: "var(--warn2)" },
-      { n: "Breath Naturalness",  c: "var(--safe2)" }
+      { n: "Spectral Artifacts", c: "var(--danger2)" },
+      { n: "Prosody Score", c: "var(--gold)" },
+      { n: "Voice Embedding Δ", c: "var(--warn2)" },
+      { n: "Breath Naturalness", c: "var(--safe2)" }
     ],
     steps: ["Audio Decoding", "Spectrogram Analysis", "Voice Embedding", "Prosody Check", "Report Generation"],
     results: [
-      { code: "SYS-01", name: "Voice Cloning",    desc: "Latent voice embedding similarity and TTS artifact identification" },
-      { code: "SYS-02", name: "Spectrogram",      desc: "MFCC deviation and spectral synthesis marker detection" },
+      { code: "SYS-01", name: "Voice Cloning", desc: "Latent voice embedding similarity and TTS artifact identification" },
+      { code: "SYS-02", name: "Spectrogram", desc: "MFCC deviation and spectral synthesis marker detection" },
       { code: "SYS-03", name: "Prosody & Rhythm", desc: "Unnatural stress, pacing and breathing pattern analysis" }
     ]
   },
   signature: {
     fmts: ["JPG", "PNG", "PDF", "TIFF", "BMP"],
     metrics: [
-      { n: "Stroke Velocity",   c: "var(--danger2)" },
+      { n: "Stroke Velocity", c: "var(--danger2)" },
       { n: "Pressure Variance", c: "var(--gold)" },
-      { n: "Tremor Analysis",   c: "var(--warn2)" },
-      { n: "Loop Consistency",  c: "var(--safe2)" }
+      { n: "Tremor Analysis", c: "var(--warn2)" },
+      { n: "Loop Consistency", c: "var(--safe2)" }
     ],
     steps: ["Image Preprocessing", "Stroke Segmentation", "Dynamic Analysis", "Template Matching", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Stroke Dynamics", desc: "Velocity, pressure and pen-lift pattern forensic analysis" },
       { code: "SYS-02", name: "Geometric Match", desc: "Reference template comparison via Dynamic Time Warping" },
-      { code: "SYS-03", name: "Writer Verify",   desc: "Neural handwriting style embedding match and comparison" }
+      { code: "SYS-03", name: "Writer Verify", desc: "Neural handwriting style embedding match and comparison" }
+    ]
+  },
+  text: {
+    fmts: ["TXT", "DOCX", "PDF"],
+    metrics: [
+      { n: "Linguistic Anomaly", c: "var(--danger2)" },
+      { n: "Semantic Coherence", c: "var(--gold)" },
+      { n: "Perplexity Score", c: "var(--warn2)" },
+      { n: "Burstiness", c: "var(--safe2)" }
+    ],
+    steps: ["Tokenization", "Contextual Embedding", "Transformer Attention", "Linguistic Scoring", "Report Generation"],
+    results: [
+      { code: "SYS-01", name: "AI Authorship", desc: "Detection of LLM generative patterns and statistical anomalies" },
+      { code: "SYS-02", name: "Perplexity", desc: "Analysis of predictability and vocabulary variance" },
+      { code: "SYS-03", name: "Semantic Shift", desc: "Detection of unnatural transitions or hallucinated phrasing" }
     ]
   }
 };
@@ -146,9 +161,9 @@ function StarCanvas() {
       stars.forEach(s => {
         s.x += s.vx * dt;
         s.y += s.vy * dt;
-        if (s.x < -4)       s.x = W + 4;
-        if (s.x > W + 4)    s.x = -4;
-        if (s.y < -4)       s.y = H * 0.65;
+        if (s.x < -4) s.x = W + 4;
+        if (s.x > W + 4) s.x = -4;
+        if (s.y < -4) s.y = H * 0.65;
         if (s.y > H * 0.65) s.y = -4;
 
         const twinkle = 0.45 + 0.55 * Math.sin(t * s.twinkleSpeed + s.phase);
@@ -354,7 +369,7 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
   const cls = fake ? "v-fake" : unc ? "v-unc" : "v-real";
   const lbl = fake ? (mode === "signature" ? "Forged" : "Synthetic") : unc ? "Inconclusive" : "Authentic";
   const clr = fake ? "var(--danger2)" : unc ? "var(--warn2)" : "var(--safe2)";
-  const g   = fake ? "rgba(232,115,107,.28)" : unc ? "rgba(212,165,85,.28)" : "rgba(104,212,174,.28)";
+  const g = fake ? "rgba(232,115,107,.28)" : unc ? "rgba(212,165,85,.28)" : "rgba(104,212,174,.28)";
   return (
     <div className="result-card">
       <div className="rc-code">
@@ -375,28 +390,97 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
   );
 }
 
+function XAIPanel({ tokenImportance, sentenceScores }) {
+  // Re-normalize relative to the actual min/max in this response
+  // (safety net in case backend values still cluster in a narrow band)
+  const allImps = tokenImportance.map(t => t.importance);
+  const impMin = allImps.length ? Math.min(...allImps) : 0;
+  const impMax = allImps.length ? Math.max(...allImps) : 1;
+  const impRange = (impMax - impMin) || 1;
+
+  const getStyle = (imp) => {
+    const n = (imp - impMin) / impRange;   // always 0–1 relative to this text
+    if (n < 0.20) return { color: '#7a8098', background: 'transparent' };
+    if (n < 0.40) return { color: '#c8b860', background: 'rgba(232,192,64,0.12)' };
+    if (n < 0.60) return { color: '#e09040', background: 'rgba(220,140,60,0.22)' };
+    if (n < 0.80) return { color: '#e86848', background: 'rgba(220,90,60,0.28)' };
+    return { color: '#ff5858', background: 'rgba(240,60,60,0.34)', fontWeight: 600 };
+  };
+  return (
+    <div className="xai-panel">
+      {tokenImportance.length > 0 && (
+        <div className="xai-tokens-section">
+          <div className="xai-sec-head">◈ &nbsp;Linguistic Influence Map</div>
+          <div className="xai-legend">
+            {[['#7a8098', 'Neutral'], ['#c8b860', 'Low'], ['#e09040', 'Medium'], ['#e86848', 'High'], ['#ff5858', 'Critical']].map(([c, l]) => (
+              <span key={l} className="xai-leg-item"><span className="xai-leg-dot" style={{ background: c }} />{l}</span>
+            ))}
+          </div>
+          <div className="xai-note">Words highlighted in red/orange most strongly influenced the AI detection decision</div>
+          <div className="xai-text-block">
+            {tokenImportance.map((t, i) => (
+              <span key={i} className="xai-tok" style={getStyle(t.importance)} title={`Influence: ${(t.importance * 100).toFixed(0)}%`}>
+                {t.token}{' '}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {sentenceScores.length > 0 && (
+        <div className="xai-sentences-section">
+          <div className="xai-sec-head" style={{ marginTop: tokenImportance.length ? 36 : 0 }}>◈ &nbsp;Sentence-Level Breakdown</div>
+          <div className="xai-note">Each sentence scored independently — higher % = more AI-like patterns detected</div>
+          <div className="xai-sent-list">
+            {sentenceScores.map((s, i) => {
+              const clr = s.fake_probability > 68 ? '#e8736b' : s.fake_probability > 45 ? '#d4a855' : '#68d4ae';
+              const lbl = s.fake_probability > 68 ? 'AI-like' : s.fake_probability > 45 ? 'Uncertain' : 'Natural';
+              return (
+                <div key={i} className="xai-sent-row">
+                  <div className="xai-sent-meta">
+                    <span className="xai-sent-idx">#{i + 1}</span>
+                    <span className="xai-sent-verdict" style={{ color: clr }}>{lbl}</span>
+                    <span className="xai-sent-pct" style={{ color: clr }}>{s.fake_probability.toFixed(0)}%</span>
+                  </div>
+                  <div className="xai-sent-quote">"{s.sentence}"</div>
+                  <div className="xai-sent-track">
+                    <div className="xai-sent-fill" style={{ width: `${s.fake_probability}%`, background: clr, boxShadow: `0 0 8px ${clr}66` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 /* ── MAIN APP ── */
 export default function App() {
   const { currentUser, logout } = useAuth();
   if (!currentUser) return <AuthPage />;
-
-  const [mode, setModeKey]               = useState("image");
-  const [fileLoaded, setFileLoaded]       = useState(false);
-  const [previewSrc, setPreviewSrc]       = useState(null);
-  const [fileName, setFileName]           = useState(null);
-  const [fileSize, setFileSize]           = useState(null);
-  const [file, setFile]                   = useState(null);
-  const [scanning, setScanning]           = useState(false);
-  const [analysing, setAnalysing]         = useState(false);
+  const [mode, setModeKey] = useState("image");
+  const [fileLoaded, setFileLoaded] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState(null);
+  const [fileName, setFileName] = useState(null);
+  const [fileSize, setFileSize] = useState(null);
+  const [file, setFile] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
   const [pipelineSteps, setPipelineSteps] = useState([]);
   const [pipelineVisible, setPipelineVisible] = useState(false);
-  const [metrics, setMetrics]             = useState([]);
-  const [verdict, setVerdict]             = useState({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
-  const [results, setResults]             = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [verdict, setVerdict] = useState({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
+  const [results, setResults] = useState([]);
   const [visibleScores, setVisibleScores] = useState([]);
-  const [activeNav, setActiveNav]         = useState("Analysis");
-  const [audioSrc, setAudioSrc]           = useState(null);
-  const [history, setHistory]             = useState([]);
+  const [activeNav, setActiveNav] = useState("Analysis");
+  const [audioSrc, setAudioSrc] = useState(null);
+  const [textInput, setTextInput] = useState("");
+  const [history, setHistory] = useState([]);
+  const [xaiData, setXaiData] = useState({ tokenImportance: [], sentenceScores: [] });
+  const [sentenceScores, setSentenceScores] = useState([]);
   const fileRef = useRef(null);
   const cfg = CFG[mode];
 
@@ -404,6 +488,7 @@ export default function App() {
     setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
     setResults([]); setPipelineVisible(false);
+    setXaiData({ tokenImportance: [], sentenceScores: [] });
   }, [mode]);
 
   useEffect(() => {
@@ -430,18 +515,29 @@ export default function App() {
     } else if (f.type.startsWith("audio/")) {
       setAudioSrc(URL.createObjectURL(f));
       setPreviewSrc(null);
+    } else if (f.type.startsWith("text/") || f.name.endsWith(".txt")) {
+      const r = new FileReader();
+      r.onload = e => {
+        setTextInput(e.target.result);
+      };
+      r.readAsText(f);
+      setPreviewSrc(null); setAudioSrc(null);
     } else { setPreviewSrc(null); setAudioSrc(null); }
     setScanning(true);
     setTimeout(() => setScanning(false), 3200);
   }
 
   function onDragOver(e) { e.preventDefault(); }
-  function onDrop(e)     { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); }
+  function onDrop(e) { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); }
   function onFilePick(e) { if (e.target.files[0]) loadFile(e.target.files[0]); }
 
   const runAnalysis = useCallback(async () => {
-    if (!fileLoaded || analysing) return;
+    const canRun = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
+    if (!canRun || analysing) return;
+
     setAnalysing(true); setPipelineVisible(true);
+    setXaiData({ tokenImportance: [], sentenceScores: [] }); setSentenceScores([]);
+
     const steps = cfg.steps.map(s => ({ label: s, state: "pending" }));
     setPipelineSteps(steps);
     for (let i = 0; i < steps.length; i++) {
@@ -449,6 +545,7 @@ export default function App() {
       await sleep(360 + Math.random() * 260);
       setPipelineSteps(prev => prev.map((s, j) => j === i ? { ...s, state: "done" } : s));
     }
+
     let score = null, prediction = null;
     try {
       const formData = new FormData();
@@ -467,34 +564,71 @@ export default function App() {
       } else if (mode === "video") {
         formData.append("video", file);
         const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
-        const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+        const d = await res.json();
+        score = d.fake_probability;
+        prediction = d.prediction;
+      } else if (mode === "text") {
+        const res = await fetch("http://localhost:5000/predict-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: textInput }),
+        });
+        const d = await res.json();
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setXaiData({ tokenImportance: d.token_importance || [], sentenceScores: d.sentence_scores || [] });
+        setSentenceScores(d.sentence_scores || []);
       }
-      
-    } catch (err) { console.error("API error:", err); setAnalysing(false); return; }
-    if (score == null) { setAnalysing(false); return; }
+    } catch (err) {
+      console.error("API error:", err);
+      setAnalysing(false);
+      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Connection Error", note: "Could not reach the backend server" });
+      return;
+    }
+
+    if (score == null) {
+      setAnalysing(false);
+      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Error", note: "Backend returned invalid response" });
+      return;
+    }
+
     const isFake = prediction === "fake";
-    const isUnc  = score >= 45 && score <= 68;
-    const color  = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
-    const glow   = isFake ? "rgba(232,115,107,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(104,212,174,.4)";
-    const word   = isFake ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected") : isUnc ? "Inconclusive" : "Authentic";
+    const isUnc = score >= 45 && score <= 68;
+    const color = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
+    const glow = isFake ? "rgba(232,115,107,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(104,212,174,.4)";
+    const word = isFake
+      ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected")
+      : isUnc ? "Inconclusive" : "Authentic";
+
     setVerdict({ score, color, glow, word, note: `${score.toFixed(1)}% synthetic probability` });
-    setMetrics(cfg.metrics.map((m, i) => ({ ...m, value: Math.max(0, score - i * 6), label: (Math.max(0, score - i * 6)).toFixed(1) + "%" })));
+    setMetrics(cfg.metrics.map((m, i) => ({
+      ...m,
+      value: Math.max(0, score - i * 6),
+      label: (Math.max(0, score - i * 6)).toFixed(1) + "%"
+    })));
     setResults(cfg.results.map(r => ({ ...r, score })));
     setVisibleScores([]);
     await sleep(80);
     cfg.results.forEach((_, i) => setTimeout(() => setVisibleScores(prev => [...prev, i]), i * 200));
+
     const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} · ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     setHistory(prev => [{
-      glyph: mode === "image" ? "▣" : mode === "video" ? "▶" : mode === "audio" ? "♪" : "✦",
-      name: fileName, size: fileSize + " MB",
+      glyph: getModeGlyph(mode),
+      name: mode === "text" ? `"${textInput.slice(0, 32)}…"` : fileName,
+      size: mode === "text" ? `${textInput.split(/\s+/).length} words` : fileSize + " MB",
       type: mode.charAt(0).toUpperCase() + mode.slice(1),
-      cls:  isFake ? "v-fake" : isUnc ? "v-unc" : "v-real",
-      lbl:  isFake ? (mode === "signature" ? "Forged" : "Synthetic") : isUnc ? "Inconclusive" : "Authentic",
+      cls: isFake ? "v-fake" : isUnc ? "v-unc" : "v-real",
+      lbl: isFake ? (mode === "signature" ? "Forged" : "Synthetic") : isUnc ? "Inconclusive" : "Authentic",
       conf: score.toFixed(1) + "%", confClr: color, date: dateStr
     }, ...prev]);
     setAnalysing(false);
-  }, [fileLoaded, analysing, mode, cfg, file]);
+  }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize, textInput]);
+ 
+  function getModeGlyph(m) {
+        return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : m === "text" ? "¶" : "✦";
+    }
+ 
 
   return (
     <>
@@ -525,7 +659,7 @@ export default function App() {
               onClick={logout}
               style={{ background: "none", border: "1px solid rgba(232,192,64,0.2)", borderRadius: 4, color: "var(--ghost)", fontFamily: "'JetBrains Mono', monospace", fontSize: 8, letterSpacing: 2, textTransform: "uppercase", padding: "5px 13px", cursor: "none", transition: "color .2s, border-color .2s" }}
               onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(232,115,107,.4)"; }}
-              onMouseLeave={e => { e.target.style.color = "var(--ghost)";   e.target.style.borderColor = "rgba(232,192,64,0.2)"; }}
+              onMouseLeave={e => { e.target.style.color = "var(--ghost)"; e.target.style.borderColor = "rgba(232,192,64,0.2)"; }}
             >Logout</button>
           </div>
         </div>
@@ -539,18 +673,18 @@ export default function App() {
         <div className="horizon-line" />
         <div className="figure" />
         <div className="pool">
-          {[{ d:"3.2s",delay:"0s",op:.5 },{ d:"4.1s",delay:".5s",op:.32 },{ d:"3.7s",delay:"1s",op:.2 },{ d:"5s",delay:"1.7s",op:.1 }].map((p,i) => (
-            <div key={i} className="pool-wave" style={{ "--d":p.d,"--delay":p.delay,"--op":p.op, bottom: i*6+"px" }} />
+          {[{ d: "3.2s", delay: "0s", op: .5 }, { d: "4.1s", delay: ".5s", op: .32 }, { d: "3.7s", delay: "1s", op: .2 }, { d: "5s", delay: "1.7s", op: .1 }].map((p, i) => (
+            <div key={i} className="pool-wave" style={{ "--d": p.d, "--delay": p.delay, "--op": p.op, bottom: i * 6 + "px" }} />
           ))}
         </div>
         <div className="heat">
-          {[{ d:"3.5s",dl:"0s",op:.10 },{ d:"4.2s",dl:".4s",op:.07 },{ d:"3.9s",dl:".9s",op:.06 },{ d:"5.1s",dl:"1.5s",op:.04 },{ d:"4.6s",dl:"2.1s",op:.03 }].map((h,i) => (
-            <div key={i} className="heat-wave" style={{ "--d":h.d,"--delay":h.dl,"--op":h.op, bottom: i*20+"px" }} />
+          {[{ d: "3.5s", dl: "0s", op: .10 }, { d: "4.2s", dl: ".4s", op: .07 }, { d: "3.9s", dl: ".9s", op: .06 }, { d: "5.1s", dl: "1.5s", op: .04 }, { d: "4.6s", dl: "2.1s", op: .03 }].map((h, i) => (
+            <div key={i} className="heat-wave" style={{ "--d": h.d, "--delay": h.dl, "--op": h.op, bottom: i * 20 + "px" }} />
           ))}
         </div>
         <div className="reflection">
-          {[{ d:"4s",dl:"0s",op:.14 },{ d:"5.5s",dl:".7s",op:.09 },{ d:"4.8s",dl:"1.4s",op:.05 },{ d:"6s",dl:"2s",op:.03 }].map((r,i) => (
-            <div key={i} className="ref-band" style={{ "--d":r.d,"--delay":r.dl,"--op":r.op, bottom: i*7+"px" }} />
+          {[{ d: "4s", dl: "0s", op: .14 }, { d: "5.5s", dl: ".7s", op: .09 }, { d: "4.8s", dl: "1.4s", op: .05 }, { d: "6s", dl: "2s", op: .03 }].map((r, i) => (
+            <div key={i} className="ref-band" style={{ "--d": r.d, "--delay": r.dl, "--op": r.op, bottom: i * 7 + "px" }} />
           ))}
         </div>
         <div className="scene-label sl-tl">Optical Illusion</div>
@@ -602,10 +736,11 @@ export default function App() {
           <div className="sec-head" style={{ marginBottom: 14 }}>Detection Mode</div>
           <div className="modes">
             {[
-              { key:"image",     code:"IMG //", name:"Image",     desc:"AI-generated and manipulated photograph detection via GAN fingerprinting",       flag:"Live" },
-              { key:"video",     code:"VID //", name:"Video",     desc:"Frame-by-frame temporal coherence analysis for face swap and synthesis",          flag:"Live" },
-              { key:"audio",     code:"AUD //", name:"Audio",     desc:"Cloned voice and synthetic speech identification via spectral forensics",          flag:"Beta" },
-              { key:"signature", code:"SIG //", name:"Signature", desc:"Handwritten signature forgery detection using stroke dynamics analysis",          flag:"Beta" },
+              { key: "image", code: "IMG //", name: "Image", desc: "AI-generated and manipulated photograph detection via GAN fingerprinting", flag: "Live" },
+              { key: "video", code: "VID //", name: "Video", desc: "Frame-by-frame temporal coherence analysis for face swap and synthesis", flag: "Live" },
+              { key: "audio", code: "AUD //", name: "Audio", desc: "Cloned voice and synthetic speech identification via spectral forensics", flag: "Beta" },
+              { key: "signature", code: "SIG //", name: "Signature", desc: "Handwritten signature forgery detection using stroke dynamics analysis", flag: "Beta" },
+              { key: "text", code: "TXT //", name: "Text", desc: "AI-generated text detection using contextual embeddings and linguistic analysis", flag: "Live" }
             ].map(m => (
               <div key={m.key} className={`mode-tile${mode === m.key ? " active" : ""}`} onClick={() => handleSetMode(m.key)}>
                 <div className={`mode-flag ${m.flag === "Live" ? "flag-live" : "flag-beta"}`}>{m.flag}</div>
@@ -625,14 +760,57 @@ export default function App() {
                 ? <img className="preview-img" src={previewSrc} alt="preview" />
                 : audioSrc
                   ? <div className="drop-inner">
-                      <div className="drop-title">{fileName}</div>
-                      <div className="drop-sub">{fileSize} MB — ready</div>
-                      <audio controls src={audioSrc} style={{ width:"100%", marginTop:16, accentColor:"var(--gold)", filter:"invert(1) hue-rotate(180deg)" }} />
+                    <div className="drop-title">{fileName}</div>
+                    <div className="drop-sub">{fileSize} MB — ready</div>
+                    <audio controls src={audioSrc} style={{ width: "100%", marginTop: 16, accentColor: "var(--gold)", filter: "invert(1) hue-rotate(180deg)" }} />
+                  </div>
+                  : mode === "text"
+                    ? <div
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        position: "absolute", inset: 0,
+                        display: "flex", flexDirection: "column",
+                        padding: 20, boxSizing: "border-box"
+                      }}
+                    >
+                      <textarea
+                        placeholder="Paste text here or upload a .txt file..."
+                        value={textInput}
+                        onChange={e => {
+                          setTextInput(e.target.value);
+                          if (e.target.value) {
+                            setFileLoaded(true);
+                            setFileName("Pasted Text");
+                            setFileSize((e.target.value.length / 1024).toFixed(2));
+                          } else {
+                            setFileLoaded(false);
+                          }
+                        }}
+                        style={{
+                          width: "100%", flexGrow: 1,
+                          background: "rgba(0,0,0,0.25)",
+                          border: "1px solid rgba(232,192,64,0.18)",
+                          color: "#d8dde8",
+                          padding: 18, fontFamily: "'Inter', sans-serif", fontSize: 14,
+                          lineHeight: 1.7,
+                          resize: "none", borderRadius: 8, outline: "none",
+                          boxSizing: "border-box"
+                        }}
+                      />
+                      {textInput.length === 0 && (
+                        <button
+                          className="drop-cta"
+                          style={{ marginTop: 14, alignSelf: "center" }}
+                          onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}
+                        >
+                          <span>Browse Text File</span>
+                        </button>
+                      )}
                     </div>
-                  : <div className="drop-inner">
+                    : <div className="drop-inner">
                       <div className="drop-mirage">
-                        {[{d:"0s",op:.75},{d:".4s",op:.46},{d:".8s",op:.28},{d:"1.2s",op:.15},{d:"1.6s",op:.07}].map((l,i) => (
-                          <div key={i} className="dm-line" style={{ "--delay":l.d, opacity:l.op, top: i*8+"px" }} />
+                        {[{ d: "0s", op: .75 }, { d: ".4s", op: .46 }, { d: ".8s", op: .28 }, { d: "1.2s", op: .15 }, { d: "1.6s", op: .07 }].map((l, i) => (
+                          <div key={i} className="dm-line" style={{ "--delay": l.d, opacity: l.op, top: i * 8 + "px" }} />
                         ))}
                       </div>
                       <div className="drop-title">{fileName || "Submit for analysis"}</div>
@@ -650,7 +828,7 @@ export default function App() {
                 <div className="panel-head">
                   <div className="panel-label">Verdict</div>
                   <div className="panel-status">
-                    <div className="pulse-dot" style={{ width:4, height:4 }} />
+                    <div className="pulse-dot" style={{ width: 4, height: 4 }} />
                     <span>{analysing ? "Processing" : "Idle"}</span>
                   </div>
                 </div>
@@ -666,9 +844,9 @@ export default function App() {
                   <div className="panel-head"><div className="panel-label">Pipeline</div></div>
                   <div className="pipe-body">
                     {pipelineSteps.map((s, i) => (
-                      <div key={i} className={`pipe-step${s.state==="done"?" done":s.state==="running"?" running":""}`}>
-                        <div className={`pipe-mark${s.state==="done"?" done":s.state==="running"?" active":""}`}>
-                          {s.state === "done" ? "✓" : `0${i+1}`}
+                      <div key={i} className={`pipe-step${s.state === "done" ? " done" : s.state === "running" ? " running" : ""}`}>
+                        <div className={`pipe-mark${s.state === "done" ? " done" : s.state === "running" ? " active" : ""}`}>
+                          {s.state === "done" ? "✓" : `0${i + 1}`}
                         </div>
                         <span>{s.label}</span>
                       </div>
@@ -680,7 +858,7 @@ export default function App() {
               <div className="panel">
                 <div className="panel-head"><div className="panel-label">Signal Analysis</div></div>
                 <div className="metrics-body">
-                  {metrics.map((m, i) => <MetricBar key={i} name={m.n} color={m.c} value={m.value||0} label={m.label||"—"} />)}
+                  {metrics.map((m, i) => <MetricBar key={i} name={m.n} color={m.c} value={m.value || 0} label={m.label || "—"} />)}
                 </div>
               </div>
 
@@ -691,12 +869,20 @@ export default function App() {
           </div>
 
           {/* RESULTS */}
-          {results.length > 0 && (
+          {results.length > 0 && mode !== "text" && (
             <div style={{ marginBottom: 48 }}>
               <div className="sec-head" style={{ marginBottom: 18 }}>Subsystem Results</div>
               <div className="results-grid">
                 {results.map((r, i) => <ResultCard key={i} {...r} mode={mode} visible={visibleScores.includes(i)} />)}
               </div>
+            </div>
+          )}
+
+          {/* XAI PANEL — text mode only */}
+          {mode === "text" && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
+            <div style={{ marginBottom: 48 }}>
+              <div className="sec-head" style={{ marginBottom: 18 }}>Explainability Report</div>
+              <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
             </div>
           )}
 
@@ -708,9 +894,9 @@ export default function App() {
                 <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
               </div>
               {history.length === 0
-                ? <div style={{ padding:"22px 26px", color:"var(--fog)", fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:2, textAlign:"center", textTransform:"uppercase" }}>
-                    No cases analysed yet
-                  </div>
+                ? <div style={{ padding: "22px 26px", color: "var(--fog)", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: 2, textAlign: "center", textTransform: "uppercase" }}>
+                  No cases analysed yet
+                </div>
                 : history.map((r, i) => (
                   <div key={i} className="t-row">
                     <div className="t-file">
