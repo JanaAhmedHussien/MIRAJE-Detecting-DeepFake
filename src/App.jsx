@@ -694,9 +694,10 @@ export default function App() {
         <div className="hero-fade" />
 
         <div className="hero-text">
+          {/* HEADLINE — left column */}
           <div className="hero-headline">
             <h1 className="hero-title">
-              Nothing<br />is what<br />
+              Nothing is what<br />
               <em data-text="it appears.">it appears.</em>
             </h1>
             <p className="hero-desc">Like a mirage on the horizon — synthetic media deceives the eye. Miraje sees through the distortion, revealing what is real and what was constructed.</p>
@@ -855,12 +856,7 @@ export default function App() {
                 </div>
               )}
 
-              <div className="panel">
-                <div className="panel-head"><div className="panel-label">Signal Analysis</div></div>
-                <div className="metrics-body">
-                  {metrics.map((m, i) => <MetricBar key={i} name={m.n} color={m.c} value={m.value || 0} label={m.label || "—"} />)}
-                </div>
-              </div>
+
 
               <button className="run-btn" disabled={!fileLoaded || analysing} onClick={runAnalysis}>
                 <span>{!fileLoaded ? "No File Selected" : analysing ? "Analysing…" : "Initiate Analysis"}</span>
