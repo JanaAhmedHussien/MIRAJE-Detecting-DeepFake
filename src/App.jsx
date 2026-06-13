@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import './Miraje.css'
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
-import UIFace from './assets/UI-face.png';
 
 /* ── DATA CONFIG ── */
 const CFG = {
@@ -84,245 +83,6 @@ const CFG = {
 };
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-/* ── ANIMATED STAR CANVAS ── */
-function StarCanvas() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const c = canvasRef.current;
-    const ctx = c.getContext("2d");
-    let W = 0, H = 0, raf, lastTs = 0;
-
-    // Stars defined BEFORE resize so resize can access them
-    const stars = Array.from({ length: 320 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight * 0.65,
-      r: Math.random() * 1.6 + 0.3,
-      baseOp: Math.random() * 0.65 + 0.25,
-      twinkleSpeed: Math.random() * 1.5 + 0.5,
-      phase: Math.random() * Math.PI * 2,
-      vx: (Math.random() - 0.5) * 10,
-      vy: (Math.random() - 0.5) * 3.5,
-      warm: Math.random() < 0.18,
-    }));
-
-    function resize() {
-      W = c.width = window.innerWidth;
-      H = c.height = window.innerHeight;
-      // Redistribute stars that fall outside the new bounds
-      stars.forEach(s => {
-        if (s.x > W) s.x = Math.random() * W;
-        if (s.y > H * 0.65) s.y = Math.random() * H * 0.65;
-      });
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    let shoot = null;
-    let nextShootDelay = 2000 + Math.random() * 3000;
-    let shootTimer = 0;
-
-    let crossers = [];
-    let nextCrossDelay = 3500 + Math.random() * 4000;
-    let crossTimer = 0;
-
-    function spawnShoot() {
-      shoot = {
-        x: W * 0.1 + Math.random() * W * 0.8,
-        y: H * 0.02 + Math.random() * H * 0.25,
-        len: 140 + Math.random() * 100,
-        age: 0,
-        life: 900,
-        angle: Math.PI / 4 + (Math.random() - 0.5) * 0.5,
-      };
-    }
-
-    function spawnCrosser() {
-      const fromLeft = Math.random() < 0.5;
-      crossers.push({
-        x: fromLeft ? -20 : W + 20,
-        y: H * 0.04 + Math.random() * H * 0.48,
-        vx: fromLeft ? (55 + Math.random() * 75) : -(55 + Math.random() * 75),
-        vy: (Math.random() - 0.5) * 18,
-        r: 0.7 + Math.random() * 0.8,
-        tailLen: 70 + Math.random() * 70,
-        life: 0,
-        maxLife: 3500 + Math.random() * 2500,
-        warm: Math.random() < 0.3,
-      });
-    }
-
-    function draw(ts) {
-      const dt = Math.min((ts - lastTs) / 1000, 0.05);
-      lastTs = ts;
-      ctx.clearRect(0, 0, W, H);
-      const t = ts / 1000;
-
-      stars.forEach(s => {
-        s.x += s.vx * dt;
-        s.y += s.vy * dt;
-        if (s.x < -4) s.x = W + 4;
-        if (s.x > W + 4) s.x = -4;
-        if (s.y < -4) s.y = H * 0.65;
-        if (s.y > H * 0.65) s.y = -4;
-
-        const twinkle = 0.45 + 0.55 * Math.sin(t * s.twinkleSpeed + s.phase);
-        const o = s.baseOp * twinkle;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = s.warm ? `rgba(255,228,160,${o})` : `rgba(235,242,255,${o})`;
-        ctx.fill();
-
-        if (s.r > 1.3 && o > 0.5) {
-          const sl = s.r * 3.5;
-          ctx.globalAlpha = o * 0.4;
-          ctx.strokeStyle = s.warm ? `rgba(255,215,120,1)` : `rgba(190,215,255,1)`;
-          ctx.lineWidth = 0.5;
-          ctx.beginPath(); ctx.moveTo(s.x - sl, s.y); ctx.lineTo(s.x + sl, s.y); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(s.x, s.y - sl); ctx.lineTo(s.x, s.y + sl); ctx.stroke();
-          ctx.globalAlpha = 1;
-        }
-      });
-
-      // Shooting star
-      shootTimer += dt * 1000;
-      if (shootTimer >= nextShootDelay && !shoot) {
-        spawnShoot();
-        shootTimer = 0;
-        nextShootDelay = 3000 + Math.random() * 5000;
-      }
-      if (shoot) {
-        shoot.age += dt * 1000;
-        const prog = shoot.age / shoot.life;
-        if (prog >= 1) {
-          shoot = null;
-        } else {
-          const alpha = prog < 0.3 ? prog / 0.3 : prog > 0.7 ? (1 - prog) / 0.3 : 1;
-          const ex = shoot.x + Math.cos(shoot.angle) * shoot.len * prog;
-          const ey = shoot.y + Math.sin(shoot.angle) * shoot.len * prog;
-          const grad = ctx.createLinearGradient(shoot.x, shoot.y, ex, ey);
-          grad.addColorStop(0, 'rgba(255,245,210,0)');
-          grad.addColorStop(0.5, `rgba(255,245,210,${alpha * 0.9})`);
-          grad.addColorStop(1, 'rgba(255,245,210,0)');
-          ctx.save();
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 1.8;
-          ctx.beginPath();
-          ctx.moveTo(shoot.x, shoot.y);
-          ctx.lineTo(ex, ey);
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-
-      // Crossing stars
-      crossTimer += dt * 1000;
-      if (crossTimer >= nextCrossDelay && crossers.length < 2) {
-        spawnCrosser();
-        crossTimer = 0;
-        nextCrossDelay = 3000 + Math.random() * 5000;
-      }
-      crossers = crossers.filter(cr => {
-        cr.life += dt * 1000;
-        cr.x += cr.vx * dt;
-        cr.y += cr.vy * dt;
-        if (cr.life >= cr.maxLife || cr.x < -200 || cr.x > W + 200) return false;
-        const prog = cr.life / cr.maxLife;
-        const alpha = prog < 0.12 ? prog / 0.12 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
-        const tailX = cr.x - Math.sign(cr.vx) * cr.tailLen;
-        const grad = ctx.createLinearGradient(tailX, cr.y, cr.x, cr.y);
-        grad.addColorStop(0, 'rgba(255,245,210,0)');
-        grad.addColorStop(1, cr.warm ? `rgba(255,220,140,${alpha * 0.8})` : `rgba(200,225,255,${alpha * 0.8})`);
-        ctx.save();
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = cr.r;
-        ctx.beginPath();
-        ctx.moveTo(tailX, cr.y);
-        ctx.lineTo(cr.x, cr.y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cr.x, cr.y, cr.r * 1.4, 0, Math.PI * 2);
-        ctx.fillStyle = cr.warm ? `rgba(255,230,160,${alpha})` : `rgba(220,235,255,${alpha})`;
-        ctx.fill();
-        ctx.restore();
-        return true;
-      });
-
-      raf = requestAnimationFrame(draw);
-    }
-
-    raf = requestAnimationFrame(draw);
-    return () => { window.removeEventListener("resize", resize); cancelAnimationFrame(raf); };
-  }, []);
-
-  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }} />;
-}
-
-/* ── SVG SAND DUNES ── */
-function SandDunes() {
-  return (
-    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, pointerEvents: "none" }}>
-      <svg viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ width: "100%", height: 120, display: "block" }}>
-        <defs>
-          <linearGradient id="dune1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2c1e08" />
-            <stop offset="100%" stopColor="#0e0d06" />
-          </linearGradient>
-        </defs>
-        <path d="M0,80 C120,45 280,100 440,65 C600,30 720,90 900,55 C1080,20 1250,75 1440,50 L1440,120 L0,120 Z" fill="url(#dune1)" />
-      </svg>
-      <svg viewBox="0 0 1440 90" preserveAspectRatio="none" style={{ width: "100%", height: 90, display: "block", marginTop: -2 }}>
-        <defs>
-          <linearGradient id="dune2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#221608" />
-            <stop offset="100%" stopColor="#090806" />
-          </linearGradient>
-          <linearGradient id="duneRidge" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,225,140,0.12)" />
-            <stop offset="100%" stopColor="rgba(255,225,140,0)" />
-          </linearGradient>
-        </defs>
-        <path d="M0,50 C200,20 400,70 600,30 C800,-10 1000,60 1200,25 C1320,8 1380,40 1440,20 L1440,90 L0,90 Z" fill="url(#dune2)" />
-        <path d="M0,50 C200,20 400,70 600,30 C800,-10 1000,60 1200,25 C1320,8 1380,40 1440,20" fill="none" stroke="url(#duneRidge)" strokeWidth="3" />
-      </svg>
-    </div>
-  );
-}
-
-/* ── CURSOR ── */
-function Cursor() {
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  useEffect(() => {
-    let mx = 0, my = 0, rx = 0, ry = 0, raf;
-    const onMove = e => {
-      mx = e.clientX; my = e.clientY;
-      if (curRef.current) { curRef.current.style.left = (mx - 3) + "px"; curRef.current.style.top = (my - 3) + "px"; }
-    };
-    document.addEventListener("mousemove", onMove);
-    function loop() {
-      rx += (mx - rx - 12) * .1; ry += (my - ry - 12) * .1;
-      if (ringRef.current) { ringRef.current.style.left = rx + "px"; ringRef.current.style.top = ry + "px"; }
-      raf = requestAnimationFrame(loop);
-    }
-    loop();
-    const addHov = () => {
-      document.querySelectorAll("button,.mode-tile,.drop-zone,.stat,.result-card,.t-row").forEach(el => {
-        el.addEventListener("mouseenter", () => { curRef.current?.classList.add("hov"); ringRef.current?.classList.add("hov"); });
-        el.addEventListener("mouseleave", () => { curRef.current?.classList.remove("hov"); ringRef.current?.classList.remove("hov"); });
-      });
-    };
-    setTimeout(addHov, 600);
-    return () => { document.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
-  }, []);
-  return (
-    <>
-      <div ref={curRef} className="cursor" />
-      <div ref={ringRef} className="cursor-ring" />
-    </>
-  );
-}
 
 /* ── VERDICT RING ── */
 function VerdictRing({ score, color, glow }) {
@@ -632,107 +392,59 @@ export default function App() {
 
   return (
     <>
-      <Cursor />
-
       {/* HEADER */}
-      <header>
+      <header className="bidaya-header">
         <div className="brand">
-          <div className="brand-wordmark">MIRAJE</div>
-          <div className="brand-divider" />
-          <div className="brand-tagline">Where Reality Dissolves</div>
+          <div className="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div className="brand-wordmark">Miraje</div>
         </div>
-        <nav>
+        <nav className="header-nav">
           {["Analysis", "Archive", "Reports", "System"].map(n => (
-            <button key={n} className={`nav-btn${activeNav === n ? " active" : ""}`} onClick={() => setActiveNav(n)}>{n}</button>
+            <button key={n} className={`nav-link${activeNav === n ? " active" : ""}`} onClick={() => setActiveNav(n)}>{n}</button>
           ))}
         </nav>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="header-actions">
           <div className="sys-status">
             <div className="pulse-dot" />
             <span>Systems Online</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, borderLeft: "1px solid rgba(232,192,64,0.12)", paddingLeft: 16 }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ghost)", letterSpacing: 1, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {currentUser.email}
-            </span>
-            <button
-              onClick={logout}
-              style={{ background: "none", border: "1px solid rgba(232,192,64,0.2)", borderRadius: 4, color: "var(--ghost)", fontFamily: "'JetBrains Mono', monospace", fontSize: 8, letterSpacing: 2, textTransform: "uppercase", padding: "5px 13px", cursor: "none", transition: "color .2s, border-color .2s" }}
-              onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(232,115,107,.4)"; }}
-              onMouseLeave={e => { e.target.style.color = "var(--ghost)"; e.target.style.borderColor = "rgba(232,192,64,0.2)"; }}
-            >Logout</button>
-          </div>
+          <button className="menu-btn">
+            Menu
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
         </div>
       </header>
 
       {/* HERO */}
-      <div className="hero">
-        <div className="sky"><StarCanvas /></div>
-        <SandDunes />
-        <div className="horizon-glow" />
-        <div className="horizon-line" />
-        <div className="figure" />
-        <div className="pool">
-          {[{ d: "3.2s", delay: "0s", op: .5 }, { d: "4.1s", delay: ".5s", op: .32 }, { d: "3.7s", delay: "1s", op: .2 }, { d: "5s", delay: "1.7s", op: .1 }].map((p, i) => (
-            <div key={i} className="pool-wave" style={{ "--d": p.d, "--delay": p.delay, "--op": p.op, bottom: i * 6 + "px" }} />
-          ))}
-        </div>
-        <div className="heat">
-          {[{ d: "3.5s", dl: "0s", op: .10 }, { d: "4.2s", dl: ".4s", op: .07 }, { d: "3.9s", dl: ".9s", op: .06 }, { d: "5.1s", dl: "1.5s", op: .04 }, { d: "4.6s", dl: "2.1s", op: .03 }].map((h, i) => (
-            <div key={i} className="heat-wave" style={{ "--d": h.d, "--delay": h.dl, "--op": h.op, bottom: i * 20 + "px" }} />
-          ))}
-        </div>
-        <div className="reflection">
-          {[{ d: "4s", dl: "0s", op: .14 }, { d: "5.5s", dl: ".7s", op: .09 }, { d: "4.8s", dl: "1.4s", op: .05 }, { d: "6s", dl: "2s", op: .03 }].map((r, i) => (
-            <div key={i} className="ref-band" style={{ "--d": r.d, "--delay": r.dl, "--op": r.op, bottom: i * 7 + "px" }} />
-          ))}
-        </div>
-        <div className="scene-label sl-tl">Optical Illusion</div>
-        <div className="scene-label sl-tr">Light · Bending</div>
-        <div className="scene-label sl-horizon">— horizon —</div>
-        <div className="scene-label sl-br">Desert · Mirage · 28.4°N</div>
-        <div className="hero-fade" />
-
-        <div className="hero-text">
-          {/* HEADLINE — left column */}
-          <div className="hero-headline">
-            <h1 className="hero-title">
-              Nothing is what<br />
-              <em data-text="it appears.">it appears.</em>
-            </h1>
-            <p className="hero-desc">Like a mirage on the horizon — synthetic media deceives the eye. Miraje sees through the distortion, revealing what is real and what was constructed.</p>
-            <div className="hero-quote">
-              <div className="hq-mark">"</div>
-              <div className="hq-text">A mirage is not a lie. It is light, bending. Deepfakes are the same — truth, refracted through a machine.</div>
-            </div>
-          </div>
-
-          {/* FACE IMAGE — right column */}
-          <div className="hero-face-wrap" style={{ animation: "fadeUp 1.1s var(--ease-out) .5s both" }}>
-            <div className="hero-face-frame">
-              <div className="hf-corner hf-tl" />
-              <div className="hf-corner hf-tr" />
-              <div className="hf-corner hf-bl" />
-              <div className="hf-corner hf-br" />
-              <div className="hf-scan" />
-              <img src={UIFace} alt="AI face mesh" className="hero-face-img" />
-              <div className="hf-label hf-label-tl">MESH · v4.2</div>
-              <div className="hf-label hf-label-tr">GAN · DETECT</div>
-              <div className="hf-label hf-label-bl">LANDMARK · 468PT</div>
-              <div className="hf-label hf-label-br">ACTIVE</div>
-              <div className="hf-glow-bar" />
-            </div>
-          </div>
-        </div>
-
-        <div className="scroll-hint">
-          <div className="sh-text">Scroll</div>
-          <div className="sh-line" />
+      <div className="hero bidaya-hero">
+        <div className="hero-badge">Advanced Deepfake Detection</div>
+        <h1 className="hero-title">
+          Nothing is what <br />
+          <em className="hero-italic">it appears.</em>
+        </h1>
+        <p className="hero-desc">
+          We craft strategic detection experiences that help you reveal what is real and what was constructed.
+        </p>
+        <div className="hero-actions">
+          <button className="btn-primary" onClick={() => {
+            const el = document.getElementById('workspace-sec');
+            if(el) el.scrollIntoView({ behavior: 'smooth' });
+          }}>
+            GET STARTED
+          </button>
+          <button className="btn-icon" onClick={() => {
+            const el = document.getElementById('workspace-sec');
+            if(el) el.scrollIntoView({ behavior: 'smooth' });
+          }}>
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
         </div>
       </div>
 
       {/* MAIN */}
-      <main>
+      <main id="workspace-sec">
         <div className="page">
           <div className="sec-head" style={{ marginBottom: 14 }}>Detection Mode</div>
           <div className="modes">
