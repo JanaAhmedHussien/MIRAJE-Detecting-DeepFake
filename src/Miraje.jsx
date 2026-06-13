@@ -463,6 +463,8 @@ export default function Miraje() {
     const fileRef = useRef(null);
     const cfg = CFG[mode];
 
+    const [moduleSelected, setModuleSelected] = useState(false);
+
     useEffect(() => {
         setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
         setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
@@ -471,13 +473,16 @@ export default function Miraje() {
 
     useEffect(() => {
         setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
-    }, []);
+    }, [cfg.metrics]);
 
+    const workspaceRef = useRef(null);
     function handleSetMode(k) {
         setModeKey(k);
+        setModuleSelected(true);
         setFileLoaded(false); setPreviewSrc(null); setFileName(null); setFileSize(null);
         setFile(null);
         setAudioSrc(null);
+        setTimeout(() => workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
 
     function loadFile(f) {
@@ -698,25 +703,45 @@ export default function Miraje() {
             <main>
                 <div className="page">
 
-                    {/* MODE TILES */}
-                    <div className="sec-head" style={{ marginBottom: 14 }}>Detection Mode</div>
-                    <div className="modes">
-                        {[
-                            { key: "image", code: "IMG //", name: "Image", desc: "AI-generated and manipulated photograph detection via GAN fingerprinting", flag: "Live" },
-                            { key: "video", code: "VID //", name: "Video", desc: "Frame-by-frame temporal coherence analysis for face swap and synthesis", flag: "Live" },
-                            { key: "audio", code: "AUD //", name: "Audio", desc: "Cloned voice and synthetic speech identification via spectral forensics", flag: "Beta" },
-                            { key: "signature", code: "SIG //", name: "Signature", desc: "Handwritten signature forgery detection using stroke dynamics analysis", flag: "Beta" },
-                        ].map(m => (
-                            <div key={m.key} className={`mode-tile${mode === m.key ? " active" : ""}`} onClick={() => handleSetMode(m.key)}>
-                                <div className={`mode-flag ${m.flag === "Live" ? "flag-live" : "flag-beta"}`}>{m.flag}</div>
-                                <div className="mode-code">{m.code}</div>
-                                <div className="mode-name">{m.name}</div>
-                                <div className="mode-desc">{m.desc}</div>
-                            </div>
-                        ))}
+                    {/* MODULE CARDS — Target-style editorial cards */}
+                    <div className="works-section">
+                        <div className="works-header">
+                            <div className="works-label">Detection Modules</div>
+                            <h2 className="works-title">Choose your analysis type</h2>
+                            <p className="works-sub">Select a module to begin deepfake detection analysis.</p>
+                        </div>
+                        <div className="works-grid">
+                            {[
+                                { key: "video",     tag: "Temporal Analysis",    title: "Video Detection",        desc: "Frame-by-frame face-swap, lip-sync manipulation & temporal coherence analysis.",     accent: "#6366f1" },
+                                { key: "image",     tag: "Visual Forensics",     title: "Image Detection",        desc: "GAN fingerprinting, inpainting traces & pixel-level artifact detection in photos.",   accent: "#3b82f6" },
+                                { key: "text",      tag: "NLP Analysis",         title: "Text Detection",         desc: "Stylometric analysis and linguistic pattern recognition for AI-generated text.",       accent: "#8b5cf6" },
+                                { key: "signature", tag: "Biometric Forensics",  title: "Signature Verification", desc: "Stroke dynamics, tremor analysis & pen-lift pattern verification against templates.",  accent: "#06b6d4" },
+                                { key: "audio",     tag: "Acoustic Forensics",   title: "Audio Forensics",        desc: "Voice cloning & synthetic speech detection via spectral and prosody analysis.",        accent: "#10b981" },
+                            ].map((card, i) => (
+                                <div
+                                    key={card.key}
+                                    className={`work-card${mode === card.key && moduleSelected ? ' work-card--active' : ''}`}
+                                    onClick={() => handleSetMode(card.key)}
+                                    style={{ '--card-accent': card.accent, animationDelay: `${i * 0.07}s` }}
+                                >
+                                    <div className="wc-tag">{card.tag}</div>
+                                    <div className="wc-body">
+                                        <h3 className="wc-title">{card.title}</h3>
+                                        <p className="wc-desc">{card.desc}</p>
+                                    </div>
+                                    <div className="wc-footer">
+                                        <span className="wc-cta">Start Analysis</span>
+                                        <span className="wc-arrow">→</span>
+                                    </div>
+                                    <div className="wc-glow" />
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* WORKSPACE */}
+                    {/* WORKSPACE — only shown after a module is selected */}
+                    {moduleSelected && (
+                    <div ref={workspaceRef} style={{ scrollMarginTop: 100 }}>
                     <div className="workspace">
                         {/* DROP ZONE */}
                         <div className="drop-zone" onDragOver={onDragOver} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
@@ -827,6 +852,8 @@ export default function Miraje() {
                             }
                         </div>
                     </div>
+                    </div>
+                    )}
 
                 </div>
             </main>
