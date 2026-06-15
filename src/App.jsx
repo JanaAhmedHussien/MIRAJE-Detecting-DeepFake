@@ -1,88 +1,77 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import './Miraje.css'
+import './Miraje.css';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
-
+import imgModuleImg from './assets/modules/image_module.png';
+import vidModuleImg from './assets/modules/video_module.png';
+import audModuleImg from './assets/modules/audio_module.png';
+import sigModuleImg from './assets/modules/signature_module.png';
+import txtModuleImg from './assets/modules/text_module.png';
+import WheelCarousel from "./WheelCarousel";
+import AllWorksButton from "./AllWorksButton";
+import WorksPage from "./WorksPage";
 /* ── DATA CONFIG ── */
 const CFG = {
   image: {
     fmts: ["JPG", "PNG", "WEBP", "GIF", "BMP", "TIFF"],
-    metrics: [
-      { n: "GAN Fingerprint", c: "var(--danger2)" },
-      { n: "Frequency Anomaly", c: "var(--gold)" },
-      { n: "Face Landmark Drift", c: "var(--warn2)" },
-      { n: "Compression Traces", c: "var(--safe2)" }
-    ],
     steps: ["Preprocessing", "Feature Extraction", "GAN Classifier", "Frequency Analysis", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Face Analysis", desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
       { code: "SYS-02", name: "Frequency Domain", desc: "DCT & Fourier transform artifact detection in latent space" },
-      { code: "SYS-03", name: "Texture Forensics", desc: "Pixel-level GAN fingerprint extraction and classification" }
-    ]
+      { code: "SYS-03", name: "Texture Forensics", desc: "Pixel-level GAN fingerprint extraction and classification" },
+    ],
   },
   video: {
     fmts: ["MP4", "MOV", "AVI", "MKV", "WEBM"],
-    metrics: [
-      { n: "Temporal Consistency", c: "var(--danger2)" },
-      { n: "Lip-Sync Alignment", c: "var(--gold)" },
-      { n: "Motion Artifacts", c: "var(--warn2)" },
-      { n: "Frame Coherence", c: "var(--safe2)" }
-    ],
     steps: ["Frame Extraction", "Face Tracking", "Temporal Analysis", "Lip-Sync Check", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Face Swap", desc: "Inter-frame face boundary and blending artifacts across sequence" },
       { code: "SYS-02", name: "Lip Sync", desc: "Audio-visual alignment consistency and phoneme mapping" },
-      { code: "SYS-03", name: "Motion Flow", desc: "Optical flow coherence and unnatural motion detection" }
-    ]
+      { code: "SYS-03", name: "Motion Flow", desc: "Optical flow coherence and unnatural motion detection" },
+    ],
   },
   audio: {
     fmts: ["WAV", "MP3", "FLAC", "OGG", "M4A", "AAC"],
-    metrics: [
-      { n: "Spectral Artifacts", c: "var(--danger2)" },
-      { n: "Prosody Score", c: "var(--gold)" },
-      { n: "Voice Embedding Δ", c: "var(--warn2)" },
-      { n: "Breath Naturalness", c: "var(--safe2)" }
-    ],
     steps: ["Audio Decoding", "Spectrogram Analysis", "Voice Embedding", "Prosody Check", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Voice Cloning", desc: "Latent voice embedding similarity and TTS artifact identification" },
       { code: "SYS-02", name: "Spectrogram", desc: "MFCC deviation and spectral synthesis marker detection" },
-      { code: "SYS-03", name: "Prosody & Rhythm", desc: "Unnatural stress, pacing and breathing pattern analysis" }
-    ]
+      { code: "SYS-03", name: "Prosody & Rhythm", desc: "Unnatural stress, pacing and breathing pattern analysis" },
+    ],
   },
   signature: {
     fmts: ["JPG", "PNG", "PDF", "TIFF", "BMP"],
-    metrics: [
-      { n: "Stroke Velocity", c: "var(--danger2)" },
-      { n: "Pressure Variance", c: "var(--gold)" },
-      { n: "Tremor Analysis", c: "var(--warn2)" },
-      { n: "Loop Consistency", c: "var(--safe2)" }
-    ],
     steps: ["Image Preprocessing", "Stroke Segmentation", "Dynamic Analysis", "Template Matching", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Stroke Dynamics", desc: "Velocity, pressure and pen-lift pattern forensic analysis" },
       { code: "SYS-02", name: "Geometric Match", desc: "Reference template comparison via Dynamic Time Warping" },
-      { code: "SYS-03", name: "Writer Verify", desc: "Neural handwriting style embedding match and comparison" }
-    ]
+      { code: "SYS-03", name: "Writer Verify", desc: "Neural handwriting style embedding match and comparison" },
+    ],
   },
   text: {
     fmts: ["TXT", "DOCX", "PDF"],
-    metrics: [
-      { n: "Linguistic Anomaly", c: "var(--danger2)" },
-      { n: "Semantic Coherence", c: "var(--gold)" },
-      { n: "Perplexity Score", c: "var(--warn2)" },
-      { n: "Burstiness", c: "var(--safe2)" }
-    ],
     steps: ["Tokenization", "Contextual Embedding", "Transformer Attention", "Linguistic Scoring", "Report Generation"],
     results: [
       { code: "SYS-01", name: "AI Authorship", desc: "Detection of LLM generative patterns and statistical anomalies" },
       { code: "SYS-02", name: "Perplexity", desc: "Analysis of predictability and vocabulary variance" },
-      { code: "SYS-03", name: "Semantic Shift", desc: "Detection of unnatural transitions or hallucinated phrasing" }
-    ]
-  }
+      { code: "SYS-03", name: "Semantic Shift", desc: "Detection of unnatural transitions or hallucinated phrasing" },
+    ],
+  },
 };
 
+const DETECTION_SERVICES = [
+  { key: "image", name: "Visual Forgery Detection", sub: "GAN Fingerprinting · Image Analysis", flag: "Live" },
+  { key: "video", name: "Deepfake Video Analysis", sub: "Temporal Coherence · Face-Swap Detection", flag: "Live" },
+  { key: "audio", name: "Synthetic Voice Identification", sub: "Spectral Forensics · Voice Cloning", flag: "Beta" },
+  { key: "signature", name: "Signature Forgery Forensics", sub: "Stroke Dynamics · Handwriting Verification", flag: "Beta" },
+  { key: "text", name: "AI-Authored Text Detection", sub: "Perplexity Analysis · LLM Pattern Recognition", flag: "Live" },
+];
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function getModeGlyph(m) {
+  return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : m === "text" ? "¶" : "✦";
+}
 
 /* ── VERDICT RING ── */
 function VerdictRing({ score, color, glow }) {
@@ -93,8 +82,7 @@ function VerdictRing({ score, color, glow }) {
         <circle className="vr-bg" cx="55" cy="55" r="47" />
         <circle className="vr-track" cx="55" cy="55" r="47" />
         <circle className="vr-fill" cx="55" cy="55" r="47"
-          style={{ strokeDashoffset: offset, stroke: color || "var(--rim2)", filter: glow ? `drop-shadow(0 0 8px ${glow})` : "none" }} />
-        <circle className="vr-spin" cx="55" cy="55" r="52" />
+          style={{ strokeDashoffset: offset, stroke: color || "var(--cream-30)", filter: glow ? `drop-shadow(0 0 8px ${glow})` : "none" }} />
       </svg>
       <div className="vring-center">
         <div className="vr-pct" style={{ color: color || "var(--ghost)", textShadow: glow ? `0 0 22px ${glow}` : "none" }}>
@@ -106,30 +94,14 @@ function VerdictRing({ score, color, glow }) {
   );
 }
 
-/* ── METRIC BAR ── */
-function MetricBar({ name, color, value, label }) {
-  return (
-    <div className="metric">
-      <div className="metric-row">
-        <span className="metric-name">{name}</span>
-        <span className="metric-val">{label}</span>
-      </div>
-      <div className="track">
-        <div className="fill" style={{ width: `${value}%`, background: color }}>
-          <div className="fill-dot" style={{ background: color }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── RESULT CARD ── */
 function ResultCard({ code, name, desc, score, mode, visible }) {
-  const fake = score > 68, unc = score >= 45 && score <= 68;
+  const fake = score > 68;
+  const unc = score >= 45 && score <= 68;
   const cls = fake ? "v-fake" : unc ? "v-unc" : "v-real";
   const lbl = fake ? (mode === "signature" ? "Forged" : "Synthetic") : unc ? "Inconclusive" : "Authentic";
   const clr = fake ? "var(--danger2)" : unc ? "var(--warn2)" : "var(--safe2)";
-  const g = fake ? "rgba(232,115,107,.28)" : unc ? "rgba(212,165,85,.28)" : "rgba(104,212,174,.28)";
+  const g = fake ? "rgba(239,68,68,.25)" : unc ? "rgba(212,165,85,.25)" : "rgba(74,222,128,.25)";
   return (
     <div className="result-card">
       <div className="rc-code">
@@ -141,7 +113,7 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
         color: clr, textShadow: `0 0 22px ${g}`,
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(10px)",
-        transition: "opacity .65s ease, transform .65s ease"
+        transition: "opacity .65s ease, transform .65s ease",
       }}>
         {score.toFixed(1)}<span style={{ fontSize: 18, color: "var(--fog)", textShadow: "none" }}>%</span>
       </div>
@@ -150,22 +122,22 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
   );
 }
 
+/* ── XAI PANEL (text mode) ── */
 function XAIPanel({ tokenImportance, sentenceScores }) {
-  // Re-normalize relative to the actual min/max in this response
-  // (safety net in case backend values still cluster in a narrow band)
   const allImps = tokenImportance.map(t => t.importance);
   const impMin = allImps.length ? Math.min(...allImps) : 0;
   const impMax = allImps.length ? Math.max(...allImps) : 1;
   const impRange = (impMax - impMin) || 1;
 
-  const getStyle = (imp) => {
-    const n = (imp - impMin) / impRange;   // always 0–1 relative to this text
+  const getStyle = imp => {
+    const n = (imp - impMin) / impRange;
     if (n < 0.20) return { color: '#7a8098', background: 'transparent' };
     if (n < 0.40) return { color: '#c8b860', background: 'rgba(232,192,64,0.12)' };
     if (n < 0.60) return { color: '#e09040', background: 'rgba(220,140,60,0.22)' };
     if (n < 0.80) return { color: '#e86848', background: 'rgba(220,90,60,0.28)' };
     return { color: '#ff5858', background: 'rgba(240,60,60,0.34)', fontWeight: 600 };
   };
+
   return (
     <div className="xai-panel">
       {tokenImportance.length > 0 && (
@@ -173,7 +145,9 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
           <div className="xai-sec-head">◈ &nbsp;Linguistic Influence Map</div>
           <div className="xai-legend">
             {[['#7a8098', 'Neutral'], ['#c8b860', 'Low'], ['#e09040', 'Medium'], ['#e86848', 'High'], ['#ff5858', 'Critical']].map(([c, l]) => (
-              <span key={l} className="xai-leg-item"><span className="xai-leg-dot" style={{ background: c }} />{l}</span>
+              <span key={l} className="xai-leg-item">
+                <span className="xai-leg-dot" style={{ background: c }} />{l}
+              </span>
             ))}
           </div>
           <div className="xai-note">Words highlighted in red/orange most strongly influenced the AI detection decision</div>
@@ -189,7 +163,7 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
       {sentenceScores.length > 0 && (
         <div className="xai-sentences-section">
           <div className="xai-sec-head" style={{ marginTop: tokenImportance.length ? 36 : 0 }}>◈ &nbsp;Sentence-Level Breakdown</div>
-          <div className="xai-note">Each sentence scored independently — higher % = more AI-like patterns detected</div>
+          <div className="xai-note">Each sentence scored independently — higher % indicates more AI-like patterns</div>
           <div className="xai-sent-list">
             {sentenceScores.map((s, i) => {
               const clr = s.fake_probability > 68 ? '#e8736b' : s.fake_probability > 45 ? '#d4a855' : '#68d4ae';
@@ -215,13 +189,105 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
   );
 }
 
+/* ── SERVICE ROW ── */
+function ServiceRow({ service, index }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <a
+      href={`?mode=${service.key}`}
+      className={`svc-row${hovered ? " hovered" : ""}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ animationDelay: `${index * 0.08}s` }}
+    >
+      <div className="svc-row-left">
+        <span className="svc-row-name">{service.name}</span>
+        <span className="svc-row-sub">{service.sub}</span>
+      </div>
+      <div className="svc-row-right">
+        <div className="svc-arrow-wrap">
+          <svg
+            viewBox="0 0 24 24" width="28" height="28"
+            stroke="currentColor" strokeWidth="1.5" fill="none"
+            strokeLinecap="round" strokeLinejoin="round"
+            className="svc-arrow-icon"
+            style={{
+              transform: hovered ? "rotate(45deg)" : "rotate(0deg)",
+              transition: "transform .35s cubic-bezier(.22,1,.36,1)",
+            }}
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </div>
+      </div>
+    </a>
+  );
+}
 
+/* ── FOOTER ── */
+function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="footer-top">
+        <div className="footer-col">
+          <div className="footer-col-label">Navigate</div>
+          <a href="/#about-section" className="footer-link">About</a>
+          <a href="/" className="footer-link">Detection Modules</a>
+          <a href="/?mode=image" className="footer-link">Image Analysis</a>
+          <a href="/?mode=video" className="footer-link">Video Analysis</a>
+          <a href="/?mode=text" className="footer-link">Text Analysis</a>
+        </div>
+        <div className="footer-col">
+          <div className="footer-col-label">Modules</div>
+          <a href="/?mode=image" className="footer-link">Visual Forgery</a>
+          <a href="/?mode=video" className="footer-link">Deepfake Video</a>
+          <a href="/?mode=audio" className="footer-link">Synthetic Voice</a>
+          <a href="/?mode=signature" className="footer-link">Signature Forensics</a>
+          <a href="/?mode=text" className="footer-link">AI Text Detection</a>
+        </div>
+        <div className="footer-col">
+          <div className="footer-col-label">Contact</div>
+          <a href="mailto:hello@miraje.ai" className="footer-link">hello@miraje.ai</a>
+          <span className="footer-link">+1 812 3456 7890</span>
+          <span className="footer-link">Cairo, Egypt</span>
+        </div>
+        <div className="footer-col">
+          <div className="footer-col-label">Newsletter</div>
+          <p className="footer-newsletter-desc">
+            Get forensic insights, detection updates, and research delivered to your inbox.
+          </p>
+          <div className="footer-newsletter-form">
+            <input type="email" placeholder="your@email.com" className="footer-newsletter-input" />
+            <button className="footer-newsletter-btn">→</button>
+          </div>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        <span>© 2025 Miraje — All rights reserved</span>
+        <span className="footer-bottom-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+          Miraje
+        </span>
+      </div>
+    </footer>
+  );
+}
 
 /* ── MAIN APP ── */
 export default function App() {
   const { currentUser, logout } = useAuth();
-  if (!currentUser) return <AuthPage />;
-  const [mode, setModeKey] = useState("image");
+
+  const pathname = window.location.pathname;
+
+  if (pathname === "/works") {
+    return <WorksPage />;
+  }
+  const [initialMode] = useState(() => new URLSearchParams(window.location.search).get('mode'));
+  const [mode, setModeKey] = useState(initialMode || "image");
   const [fileLoaded, setFileLoaded] = useState(false);
   const [previewSrc, setPreviewSrc] = useState(null);
   const [fileName, setFileName] = useState(null);
@@ -231,7 +297,6 @@ export default function App() {
   const [analysing, setAnalysing] = useState(false);
   const [pipelineSteps, setPipelineSteps] = useState([]);
   const [pipelineVisible, setPipelineVisible] = useState(false);
-  const [metrics, setMetrics] = useState([]);
   const [verdict, setVerdict] = useState({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
   const [results, setResults] = useState([]);
   const [visibleScores, setVisibleScores] = useState([]);
@@ -240,25 +305,43 @@ export default function App() {
   const [textInput, setTextInput] = useState("");
   const [history, setHistory] = useState([]);
   const [xaiData, setXaiData] = useState({ tokenImportance: [], sentenceScores: [] });
-  const [sentenceScores, setSentenceScores] = useState([]);
+
   const fileRef = useRef(null);
   const cfg = CFG[mode];
+  const aboutRef = useRef(null);
 
   useEffect(() => {
-    setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
-    setResults([]); setPipelineVisible(false);
+    setResults([]);
+    setPipelineVisible(false);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
   }, [mode]);
 
+  /* About word-reveal animation — only fires scrolling down */
   useEffect(() => {
-    setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
+    if (!aboutRef.current) return;
+    let prevY = window.scrollY;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (!aboutRef.current) return;
+        const words = aboutRef.current.querySelectorAll('.about-word');
+        const scrollingDown = window.scrollY >= prevY;
+        prevY = window.scrollY;
+        if (entry.isIntersecting && scrollingDown) {
+          words.forEach(w => { w.style.animation = 'none'; w.style.opacity = '0'; });
+          void aboutRef.current.offsetHeight;
+          words.forEach(w => { w.style.animation = ''; w.style.animationPlayState = 'running'; });
+        } else if (!entry.isIntersecting && !scrollingDown) {
+          words.forEach(w => { w.style.animation = 'none'; w.style.opacity = '0'; });
+        }
+      },
+      { threshold: 0 }
+    );
+    obs.observe(aboutRef.current);
+    const onScroll = () => { prevY = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { obs.disconnect(); window.removeEventListener('scroll', onScroll); };
   }, []);
-
-  function handleSetMode(k) {
-    setModeKey(k);
-    setFileLoaded(false); setPreviewSrc(null); setFileName(null); setFileSize(null);
-  }
 
   function loadFile(f) {
     setFile(f);
@@ -266,7 +349,9 @@ export default function App() {
     setFileName(f.name);
     setFileSize((f.size / 1024 / 1024).toFixed(2));
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
-    setResults([]); setPipelineVisible(false);
+    setResults([]);
+    setPipelineVisible(false);
+
     if (f.type.startsWith("image/")) {
       const r = new FileReader();
       r.onload = e => setPreviewSrc(e.target.result);
@@ -277,12 +362,15 @@ export default function App() {
       setPreviewSrc(null);
     } else if (f.type.startsWith("text/") || f.name.endsWith(".txt")) {
       const r = new FileReader();
-      r.onload = e => {
-        setTextInput(e.target.result);
-      };
+      r.onload = e => setTextInput(e.target.result);
       r.readAsText(f);
-      setPreviewSrc(null); setAudioSrc(null);
-    } else { setPreviewSrc(null); setAudioSrc(null); }
+      setPreviewSrc(null);
+      setAudioSrc(null);
+    } else {
+      setPreviewSrc(null);
+      setAudioSrc(null);
+    }
+
     setScanning(true);
     setTimeout(() => setScanning(false), 3200);
   }
@@ -295,8 +383,9 @@ export default function App() {
     const canRun = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
     if (!canRun || analysing) return;
 
-    setAnalysing(true); setPipelineVisible(true);
-    setXaiData({ tokenImportance: [], sentenceScores: [] }); setSentenceScores([]);
+    setAnalysing(true);
+    setPipelineVisible(true);
+    setXaiData({ tokenImportance: [], sentenceScores: [] });
 
     const steps = cfg.steps.map(s => ({ label: s, state: "pending" }));
     setPipelineSteps(steps);
@@ -309,24 +398,27 @@ export default function App() {
     let score = null, prediction = null;
     try {
       const formData = new FormData();
+
       if (mode === "image") {
         formData.append("image", file);
         const res = await fetch("http://localhost:5000/predict-image", { method: "POST", body: formData });
-        const d = await res.json(); score = d.fake_probability; prediction = d.prediction;
+        const d = await res.json();
+        score = d.fake_probability; prediction = d.prediction;
       } else if (mode === "audio") {
         formData.append("audio", file);
         const res = await fetch("http://localhost:5000/predict-audio", { method: "POST", body: formData });
-        const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+        const d = await res.json();
+        score = d.score ?? d.fake_probability; prediction = d.prediction;
       } else if (mode === "signature") {
         formData.append("signature", file);
         const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
-        const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+        const d = await res.json();
+        score = d.score ?? d.fake_probability; prediction = d.prediction;
       } else if (mode === "video") {
         formData.append("video", file);
         const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
         const d = await res.json();
-        score = d.fake_probability;
-        prediction = d.prediction;
+        score = d.fake_probability; prediction = d.prediction;
       } else if (mode === "text") {
         const res = await fetch("http://localhost:5000/predict-text", {
           method: "POST",
@@ -334,38 +426,29 @@ export default function App() {
           body: JSON.stringify({ text: textInput }),
         });
         const d = await res.json();
-        score = d.fake_probability;
-        prediction = d.prediction;
+        score = d.fake_probability; prediction = d.prediction;
         setXaiData({ tokenImportance: d.token_importance || [], sentenceScores: d.sentence_scores || [] });
-        setSentenceScores(d.sentence_scores || []);
       }
     } catch (err) {
       console.error("API error:", err);
       setAnalysing(false);
-      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Connection Error", note: "Could not reach the backend server" });
+      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(239,68,68,.4)", word: "Connection Error", note: "Could not reach the backend server" });
       return;
     }
 
     if (score == null) {
       setAnalysing(false);
-      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Error", note: "Backend returned invalid response" });
+      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(239,68,68,.4)", word: "Error", note: "Backend returned invalid response" });
       return;
     }
 
     const isFake = prediction === "fake";
     const isUnc = score >= 45 && score <= 68;
     const color = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
-    const glow = isFake ? "rgba(232,115,107,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(104,212,174,.4)";
-    const word = isFake
-      ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected")
-      : isUnc ? "Inconclusive" : "Authentic";
+    const glow = isFake ? "rgba(239,68,68,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(74,222,128,.4)";
+    const word = isFake ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected") : isUnc ? "Inconclusive" : "Authentic";
 
     setVerdict({ score, color, glow, word, note: `${score.toFixed(1)}% synthetic probability` });
-    setMetrics(cfg.metrics.map((m, i) => ({
-      ...m,
-      value: Math.max(0, score - i * 6),
-      label: (Math.max(0, score - i * 6)).toFixed(1) + "%"
-    })));
     setResults(cfg.results.map(r => ({ ...r, score })));
     setVisibleScores([]);
     await sleep(80);
@@ -380,23 +463,30 @@ export default function App() {
       type: mode.charAt(0).toUpperCase() + mode.slice(1),
       cls: isFake ? "v-fake" : isUnc ? "v-unc" : "v-real",
       lbl: isFake ? (mode === "signature" ? "Forged" : "Synthetic") : isUnc ? "Inconclusive" : "Authentic",
-      conf: score.toFixed(1) + "%", confClr: color, date: dateStr
+      conf: score.toFixed(1) + "%",
+      confClr: color,
+      date: dateStr,
     }, ...prev]);
+
     setAnalysing(false);
   }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize, textInput]);
- 
-  function getModeGlyph(m) {
-        return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : m === "text" ? "¶" : "✦";
-    }
- 
+
+  if (!currentUser) return <AuthPage />;
+
+  const canSubmit = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
+
+  const aboutText =
+    "Miraje is a modern deepfake detection system focused on identifying synthetic media through forensic AI, signal analysis, and transformer-based reasoning.";
 
   return (
     <>
-      {/* HEADER */}
+      {/* ── HEADER ── */}
       <header className="bidaya-header">
         <div className="brand">
           <div className="brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
           </div>
           <div className="brand-wordmark">Miraje</div>
         </div>
@@ -406,224 +496,309 @@ export default function App() {
           ))}
         </nav>
         <div className="header-actions">
-          <div className="sys-status">
-            <div className="pulse-dot" />
-            <span>Systems Online</span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+            <span style={{
+              fontFamily: "'Be Vietnam Pro', sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "rgba(43,49,51,0.85)",
+              letterSpacing: "-0.01em",
+            }}>
+              {currentUser.displayName ?? currentUser.email.split("@")[0]}
+            </span>
           </div>
-          <button className="menu-btn">
-            Menu
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <button
+            onClick={logout}
+            style={{
+              border: "1px solid rgba(43,49,51,0.18)", borderRadius: 4,
+              color: "rgba(43,49,51,0.6)", fontFamily: "'Inter',monospace",
+              fontSize: 9, letterSpacing: 2, textTransform: "uppercase",
+              padding: "5px 13px", background: "none", cursor: "pointer",
+              transition: "color .2s, border-color .2s",
+            }}
+            onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(239,68,68,.4)"; }}
+            onMouseLeave={e => { e.target.style.color = "rgba(43,49,51,0.6)"; e.target.style.borderColor = "rgba(43,49,51,0.18)"; }}
+          >
+            Logout
           </button>
         </div>
       </header>
 
-      {/* HERO */}
-      <div className="hero bidaya-hero">
-        <div className="hero-badge">Advanced Deepfake Detection</div>
-        <h1 className="hero-title">
-          Nothing is what <br />
-          <em className="hero-italic">it appears.</em>
-        </h1>
-        <p className="hero-desc">
-          We craft strategic detection experiences that help you reveal what is real and what was constructed.
-        </p>
-        <div className="hero-actions">
-          <button className="btn-primary" onClick={() => {
-            const el = document.getElementById('workspace-sec');
-            if(el) el.scrollIntoView({ behavior: 'smooth' });
-          }}>
-            GET STARTED
-          </button>
-          <button className="btn-icon" onClick={() => {
-            const el = document.getElementById('workspace-sec');
-            if(el) el.scrollIntoView({ behavior: 'smooth' });
-          }}>
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </button>
-        </div>
-      </div>
+      {/* ── LANDING ONLY: Hero + About + Carousel + Services ── */}
+      {!initialMode && (
+        <>
+          <div className="slide-stack">
 
-      {/* MAIN */}
-      <main id="workspace-sec">
-        <div className="page">
-          <div className="sec-head" style={{ marginBottom: 14 }}>Detection Mode</div>
-          <div className="modes">
-            {[
-              { key: "image", code: "IMG //", name: "Image", desc: "AI-generated and manipulated photograph detection via GAN fingerprinting", flag: "Live" },
-              { key: "video", code: "VID //", name: "Video", desc: "Frame-by-frame temporal coherence analysis for face swap and synthesis", flag: "Live" },
-              { key: "audio", code: "AUD //", name: "Audio", desc: "Cloned voice and synthetic speech identification via spectral forensics", flag: "Beta" },
-              { key: "signature", code: "SIG //", name: "Signature", desc: "Handwritten signature forgery detection using stroke dynamics analysis", flag: "Beta" },
-              { key: "text", code: "TXT //", name: "Text", desc: "AI-generated text detection using contextual embeddings and linguistic analysis", flag: "Live" }
-            ].map(m => (
-              <div key={m.key} className={`mode-tile${mode === m.key ? " active" : ""}`} onClick={() => handleSetMode(m.key)}>
-                <div className={`mode-flag ${m.flag === "Live" ? "flag-live" : "flag-beta"}`}>{m.flag}</div>
-                <div className="mode-code">{m.code}</div>
-                <div className="mode-name">{m.name}</div>
-                <div className="mode-desc">{m.desc}</div>
+            {/* HERO */}
+            <div className="hero bidaya-hero">
+              <div className="hero-badge">Advanced Deepfake Detection</div>
+              <h1 className="hero-title">
+                Nothing is what <br />
+                <em className="hero-italic">it appears.</em>
+              </h1>
+              <p className="hero-desc">
+                We craft strategic detection experiences that help you reveal what is real and what was constructed.
+              </p>
+              <div className="hero-actions">
+                <button className="btn-primary" onClick={() => document.getElementById('services-sec')?.scrollIntoView({ behavior: 'smooth' })}>
+                  Get Started
+                </button>
+                <button className="btn-icon" onClick={() => document.getElementById('services-sec')?.scrollIntoView({ behavior: 'smooth' })}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
               </div>
-            ))}
+            </div>
+
+            {/* ABOUT */}
+            <section id="about-section" className="about-section" ref={aboutRef}>
+              <div className="about-container">
+                <div className="about-text">
+                  <div className="about-line">
+                    {aboutText.split(" ").map((word, i) => (
+                      <span key={i} className="about-word" style={{ "--d": `${i * 0.06}s` }}>
+                        {word}&nbsp;
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="about-cta"
+                  onClick={() => document.getElementById("services-sec")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  GET STARTED →
+                </button>
+              </div>
+            </section>
+
           </div>
 
-          <div className="workspace">
-            {/* DROP ZONE */}
-            <div className="drop-zone" onDragOver={onDragOver} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
-              <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
-              {scanning && <div className="scan-beam" />}
-              {previewSrc
-                ? <img className="preview-img" src={previewSrc} alt="preview" />
-                : audioSrc
-                  ? <div className="drop-inner">
-                    <div className="drop-title">{fileName}</div>
-                    <div className="drop-sub">{fileSize} MB — ready</div>
-                    <audio controls src={audioSrc} style={{ width: "100%", marginTop: 16, accentColor: "var(--gold)", filter: "invert(1) hue-rotate(180deg)" }} />
-                  </div>
-                  : mode === "text"
-                    ? <div
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        position: "absolute", inset: 0,
-                        display: "flex", flexDirection: "column",
-                        padding: 20, boxSizing: "border-box"
-                      }}
-                    >
-                      <textarea
-                        placeholder="Paste text here or upload a .txt file..."
-                        value={textInput}
-                        onChange={e => {
-                          setTextInput(e.target.value);
-                          if (e.target.value) {
-                            setFileLoaded(true);
-                            setFileName("Pasted Text");
-                            setFileSize((e.target.value.length / 1024).toFixed(2));
-                          } else {
-                            setFileLoaded(false);
-                          }
-                        }}
-                        style={{
-                          width: "100%", flexGrow: 1,
-                          background: "rgba(0,0,0,0.25)",
-                          border: "1px solid rgba(232,192,64,0.18)",
-                          color: "#d8dde8",
-                          padding: 18, fontFamily: "'Inter', sans-serif", fontSize: 14,
-                          lineHeight: 1.7,
-                          resize: "none", borderRadius: 8, outline: "none",
-                          boxSizing: "border-box"
-                        }}
-                      />
-                      {textInput.length === 0 && (
-                        <button
-                          className="drop-cta"
-                          style={{ marginTop: 14, alignSelf: "center" }}
-                          onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}
-                        >
-                          <span>Browse Text File</span>
-                        </button>
-                      )}
-                    </div>
-                    : <div className="drop-inner">
-                      <div className="drop-mirage">
-                        {[{ d: "0s", op: .75 }, { d: ".4s", op: .46 }, { d: ".8s", op: .28 }, { d: "1.2s", op: .15 }, { d: "1.6s", op: .07 }].map((l, i) => (
-                          <div key={i} className="dm-line" style={{ "--delay": l.d, opacity: l.op, top: i * 8 + "px" }} />
-                        ))}
-                      </div>
-                      <div className="drop-title">{fileName || "Submit for analysis"}</div>
-                      <div className="drop-sub">{fileSize ? `${fileSize} MB — ready` : "Drag & drop your file here,\nor select from your device."}</div>
-                      <div className="drop-fmts">{cfg.fmts.map(f => <span key={f} className="dfmt">{f}</span>)}</div>
-                      <button className="drop-cta" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}><span>Browse Files</span></button>
-                    </div>
-              }
-            </div>
-            <input type="file" ref={fileRef} onChange={onFilePick} />
+          {/* CAROUSEL */}
+          <section className="carousel-section">
+            <WheelCarousel />
+          </section>
 
-            {/* SIDEBAR */}
-            <div className="sidebar">
-              <div className="panel">
-                <div className="panel-head">
-                  <div className="panel-label">Verdict</div>
-                  <div className="panel-status">
-                    <div className="pulse-dot" style={{ width: 4, height: 4 }} />
-                    <span>{analysing ? "Processing" : "Idle"}</span>
-                  </div>
+          {/* DETECTION SERVICES */}
+          <section id="services-sec" className="services-section">
+            <h2 className="services-heading">Detection Modules</h2>
+            <div className="services-list">
+              {DETECTION_SERVICES.map((svc, i) => (
+                <ServiceRow key={svc.key} service={svc} index={i} />
+              ))}
+            </div>
+            <AllWorksButton />
+            <p className="services-desc">
+
+              Miraje provides forensic-grade analysis across five media types. Select a module above to open its detection workspace and submit media for analysis.
+            </p>
+          </section>
+        </>
+      )}
+
+      {/* ── WORKSPACE (?mode=X only) ── */}
+      {initialMode && (
+        <main id="workspace-sec">
+          <div className="ws-page">
+
+            {/* ── HERO ROW (Everline-style) ── */}
+            <div className="ws-hero">
+              <a href="/" className="mc-back-btn" style={{ marginBottom: 32, display: 'inline-flex' }}>← Back</a>
+
+              {/* Service title — like "Everline" */}
+              <h1 className="ws-hero-title">
+                {DETECTION_SERVICES.find(s => s.key === mode)?.name}
+              </h1>
+
+              {/* Meta row — like Category / Year / Duration */}
+              <div className="ws-meta-row">
+                <div className="ws-meta-item">
+                  <div className="ws-meta-label">Module</div>
+                  <div className="ws-meta-value">{mode.charAt(0).toUpperCase() + mode.slice(1)}</div>
                 </div>
-                <div className="verdict-body">
-                  <VerdictRing score={verdict.score} color={verdict.color} glow={verdict.glow} />
-                  <div className="verdict-word" style={{ color: verdict.color || "var(--sand-light)" }}>{verdict.word}</div>
-                  <div className="verdict-note">{verdict.note}</div>
+                <span className="ws-meta-sep">/</span>
+                <div className="ws-meta-item">
+                  <div className="ws-meta-label">Formats</div>
+                  <div className="ws-meta-value">{cfg.fmts.slice(0, 3).join(', ')}</div>
+                </div>
+                <span className="ws-meta-sep">/</span>
+                {/* Verdict inline */}
+                <div className="ws-meta-item">
+                  <div className="ws-meta-label">Verdict</div>
+                  <div className="ws-meta-value" style={{ color: verdict.color || 'rgba(250,250,250,0.5)' }}>
+                    {verdict.word}
+                  </div>
                 </div>
               </div>
 
-              {pipelineVisible && (
-                <div className="panel">
-                  <div className="panel-head"><div className="panel-label">Pipeline</div></div>
-                  <div className="pipe-body">
+              {/* Description / sub — right side like Bidaya */}
+              <p className="ws-hero-desc">
+                {DETECTION_SERVICES.find(s => s.key === mode)?.sub.split('·').map((s, i) => (
+                  <span key={i}>{s.trim()}{i === 0 ? ' — ' : ''}</span>
+                ))}
+                Submit your file below to begin forensic analysis.
+              </p>
+            </div>
+
+            {/* ── BIG MEDIA ZONE (like the big Everline image) ── */}
+            <div
+              className="ws-media-zone"
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onClick={() => mode !== 'text' && fileRef.current?.click()}
+            >
+              {scanning && <div className="scan-beam" />}
+              <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
+
+              {/* IMAGE: show uploaded image */}
+              {previewSrc && mode === 'image' && (
+                <img className="ws-media-img" src={previewSrc} alt="preview" />
+              )}
+
+              {/* VIDEO: show first frame (poster) via video element */}
+              {previewSrc && mode === 'video' && (
+                <video className="ws-media-img" src={previewSrc} muted playsInline preload="metadata"
+                  style={{ objectFit: 'cover' }} />
+              )}
+              {/* fallback for video from file object */}
+              {!previewSrc && audioSrc === null && file && mode === 'video' && (
+                <video className="ws-media-img"
+                  src={URL.createObjectURL(file)} muted playsInline preload="metadata"
+                  style={{ objectFit: 'cover' }} />
+              )}
+
+              {/* AUDIO: waveform-style player */}
+              {audioSrc && (
+                <div className="ws-audio-inner">
+                  <div className="ws-audio-icon">♪</div>
+                  <div className="ws-audio-name">{fileName}</div>
+                  <div className="ws-audio-size">{fileSize} MB</div>
+                  <audio controls src={audioSrc} className="ws-audio-player" />
+                </div>
+              )}
+
+              {/* TEXT: large textarea */}
+              {mode === 'text' && (
+                <div className="ws-text-inner" onClick={e => e.stopPropagation()}>
+                  <textarea
+                    className="ws-textarea"
+                    placeholder="Paste your text here, or drop a .txt / .docx file onto this area…"
+                    value={textInput}
+                    onChange={e => {
+                      setTextInput(e.target.value);
+                      setFileLoaded(e.target.value.length > 0);
+                      setFileName('Pasted Text');
+                      setFileSize((e.target.value.length / 1024).toFixed(2));
+                    }}
+                  />
+                  {textInput.length === 0 && (
+                    <button className="ws-browse-btn"
+                      onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}>
+                      Browse File
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* EMPTY STATE */}
+              {!previewSrc && !audioSrc && mode !== 'text' && (
+                <div className="ws-empty">
+                  <div className="ws-empty-glyph">{getModeGlyph(mode)}</div>
+                  <div className="ws-empty-title">Drop to analyse</div>
+                  <div className="ws-empty-sub">Drag & drop or click to browse</div>
+                  <div className="ws-empty-fmts">
+                    {cfg.fmts.map(f => <span key={f} className="dfmt">{f}</span>)}
+                  </div>
+                  <button className="drop-cta" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}>
+                    Browse Files
+                  </button>
+                </div>
+              )}
+            </div>
+            <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: 'none' }} />
+
+            {/* ── ANALYSIS BAR ── */}
+            <div className="ws-action-bar">
+              <div className="ws-action-left">
+                {pipelineVisible && (
+                  <div className="ws-pipeline">
                     {pipelineSteps.map((s, i) => (
-                      <div key={i} className={`pipe-step${s.state === "done" ? " done" : s.state === "running" ? " running" : ""}`}>
-                        <div className={`pipe-mark${s.state === "done" ? " done" : s.state === "running" ? " active" : ""}`}>
-                          {s.state === "done" ? "✓" : `0${i + 1}`}
-                        </div>
+                      <div key={i} className={`ws-pipe-step${s.state === 'done' ? ' done' : s.state === 'running' ? ' running' : ''}`}>
+                        <span className="ws-pipe-dot" />
                         <span>{s.label}</span>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-
-
-              <button className="run-btn" disabled={!fileLoaded || analysing} onClick={runAnalysis}>
-                <span>{!fileLoaded ? "No File Selected" : analysing ? "Analysing…" : "Initiate Analysis"}</span>
+                )}
+                {verdict.score != null && (
+                  <div className="ws-verdict-inline">
+                    <VerdictRing score={verdict.score} color={verdict.color} glow={verdict.glow} />
+                    <div>
+                      <div className="ws-verdict-word" style={{ color: verdict.color }}>{verdict.word}</div>
+                      <div className="ws-verdict-note">{verdict.note}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button className="ws-run-btn" disabled={!canSubmit || analysing} onClick={runAnalysis}>
+                {!canSubmit ? (mode === 'text' ? 'Enter text first' : 'No file selected')
+                  : analysing ? 'Analysing…'
+                    : 'Initiate Analysis →'}
               </button>
             </div>
-          </div>
 
-          {/* RESULTS */}
-          {results.length > 0 && mode !== "text" && (
-            <div style={{ marginBottom: 48 }}>
-              <div className="sec-head" style={{ marginBottom: 18 }}>Subsystem Results</div>
-              <div className="results-grid">
-                {results.map((r, i) => <ResultCard key={i} {...r} mode={mode} visible={visibleScores.includes(i)} />)}
-              </div>
-            </div>
-          )}
-
-          {/* XAI PANEL — text mode only */}
-          {mode === "text" && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
-            <div style={{ marginBottom: 48 }}>
-              <div className="sec-head" style={{ marginBottom: 18 }}>Explainability Report</div>
-              <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
-            </div>
-          )}
-
-          {/* HISTORY TABLE */}
-          <div style={{ animation: "fadeUp .7s cubic-bezier(.22,1,.36,1) .4s both" }}>
-            <div className="sec-head" style={{ marginBottom: 18 }}>Recent Cases</div>
-            <div className="table-wrap">
-              <div className="t-head">
-                <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
-              </div>
-              {history.length === 0
-                ? <div style={{ padding: "22px 26px", color: "var(--fog)", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: 2, textAlign: "center", textTransform: "uppercase" }}>
-                  No cases analysed yet
+            {/* ── SUBSYSTEM RESULTS ── */}
+            {results.length > 0 && mode !== 'text' && (
+              <div className="ws-results-section">
+                <div className="sec-head">Subsystem Results</div>
+                <div className="results-grid">
+                  {results.map((r, i) => <ResultCard key={i} {...r} mode={mode} visible={visibleScores.includes(i)} />)}
                 </div>
-                : history.map((r, i) => (
+              </div>
+            )}
+
+            {/* ── XAI PANEL ── */}
+            {mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
+              <div className="ws-results-section">
+                <div className="sec-head">Explainability Report</div>
+                <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
+              </div>
+            )}
+
+            {/* ── HISTORY TABLE ── */}
+            <div className="ws-results-section">
+              <div className="sec-head">Recent Cases</div>
+              <div className="table-wrap">
+                <div className="t-head">
+                  <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
+                </div>
+                {history.length === 0 ? (
+                  <div style={{ padding: '28px 24px', color: 'var(--ghost)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' }}>
+                    No cases analysed yet
+                  </div>
+                ) : history.map((r, i) => (
                   <div key={i} className="t-row">
                     <div className="t-file">
                       <div className="t-glyph">{r.glyph}</div>
-                      <div><div className="t-fname">{r.name}</div><div className="t-fsize">{r.size}</div></div>
+                      <div>
+                        <div className="t-fname">{r.name}</div>
+                        <div className="t-fsize">{r.size}</div>
+                      </div>
                     </div>
                     <div className="t-type">{r.type}</div>
                     <div><span className={`rc-verdict ${r.cls}`}>{r.lbl}</span></div>
                     <div className="t-conf" style={{ color: r.confClr }}>{r.conf}</div>
                     <div className="t-date">{r.date}</div>
                   </div>
-                ))
-              }
+                ))}
+              </div>
             </div>
+
           </div>
-
-
-        </div>
-      </main>
+        </main>
+      )}
+      {/* ── FOOTER ── */}
+      <Footer />
     </>
   );
 }
