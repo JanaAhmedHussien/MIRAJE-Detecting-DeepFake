@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
 import './Miraje.css';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
@@ -372,8 +374,8 @@ function Footer() {
 function StampOverlay({ verdict, mode }) {
   if (!verdict || verdict.score == null) return null;
 
-  const isFake = verdict.score > 68;
-  const isUnc = verdict.score >= 45 && verdict.score <= 68;
+  const isFake = verdict.word === "Synthetic Detected" || verdict.word === "Forgery Confirmed";
+  const isUnc = verdict.word === "Inconclusive";
 
   const color = isFake ? "#ef4444" : isUnc ? "#facc15" : "#4ade80";
   const topText = isFake ? "SYNTHETIC MEDIA" : isUnc ? "UNVERIFIED MEDIA" : "VERIFIED MEDIA";
@@ -456,13 +458,67 @@ export default function App() {
   const [audioSrc, setAudioSrc] = useState(null);
   const [textInput, setTextInput] = useState("");
   const [history, setHistory] = useState([]);
+  const [archive, setArchive] = useState([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [addedToArchive, setAddedToArchive] = useState(false);
   const [xaiData, setXaiData] = useState({ tokenImportance: [], sentenceScores: [] });
   const [gradcam, setGradcam] = useState(null);   // ← GradCAM heatmap (base64 PNG)
+  const [referenceFile, setReferenceFile] = useState(null);
+  const [referenceSrc, setReferenceSrc] = useState(null);
+  const referenceRef = useRef(null);
   const [geminiExplanation, setGeminiExplanation] = useState(null);
 
   const fileRef = useRef(null);
   const cfg = CFG[mode];
   const aboutRef = useRef(null);
+
+
+  const loadArchive = useCallback(async () => {
+    if (!currentUser) return;
+    setArchiveLoading(true);
+    try {
+      const q = query(
+        collection(db, "users", currentUser.uid, "archive"),
+        orderBy("timestamp", "desc")
+      );
+      const snap = await getDocs(q);
+      setArchive(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error("Failed to load archive:", e);
+    } finally {
+      setArchiveLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => { loadArchive(); }, [loadArchive]);
+
+  const addToArchive = useCallback(async () => {
+    if (!currentUser || verdict.score == null) return;
+    const now = new Date();
+    const entry = {
+      glyph: getModeGlyph(mode),
+      name: mode === "text" ? `"${textInput.slice(0, 32)}…"` : fileName,
+      size: mode === "text" ? `${textInput.split(/\s+/).length} words` : fileSize + " MB",
+      type: mode.charAt(0).toUpperCase() + mode.slice(1),
+      cls: verdict.color === "var(--danger2)" ? "v-fake"
+        : verdict.color === "var(--warn2)" ? "v-unc" : "v-real",
+      lbl: verdict.word === "Forgery Confirmed" ? "Forged"
+        : verdict.word === "Synthetic Detected" ? "Synthetic"
+          : verdict.word === "Inconclusive" ? "Inconclusive" : "Authentic",
+      conf: verdict.score.toFixed(1) + "%",
+      confClr: verdict.color,
+      timestamp: now.toISOString(),
+      date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    };
+    try {
+      await addDoc(collection(db, "users", currentUser.uid, "archive"), entry);
+      setArchive(prev => [entry, ...prev]);
+      setAddedToArchive(true);
+      setTimeout(() => setAddedToArchive(false), 3000);
+    } catch (e) {
+      console.error("Failed to save to archive:", e);
+    }
+  }, [currentUser, verdict, mode, textInput, fileName, fileSize]);
 
   // Reset all result state when mode changes
   useEffect(() => {
@@ -471,9 +527,11 @@ export default function App() {
     setPipelineVisible(false);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
     setGradcam(null);   // ← reset GradCAM on mode switch
+    setReferenceFile(null);
+    setReferenceSrc(null);
     setGeminiExplanation(null);
+    setAddedToArchive(false);
   }, [mode]);
-
   /* About word-reveal animation — only fires scrolling down */
   useEffect(() => {
     if (!aboutRef.current) return;
@@ -524,6 +582,9 @@ export default function App() {
       r.onload = e => setTextInput(e.target.result);
       r.readAsText(f);
       setPreviewSrc(null);
+      setAudioSrc(null);
+    } else if (f.type.startsWith("video/")) {
+      setPreviewSrc(URL.createObjectURL(f));
       setAudioSrc(null);
     } else {
       setPreviewSrc(null);
@@ -588,6 +649,7 @@ export default function App() {
         score = d.score ?? d.fake_probability; prediction = d.prediction;
       } else if (mode === "signature") {
         formData.append("signature", file);
+        formData.append("reference", referenceFile);
         const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
         const d = await res.json();
         score = d.fake_probability;
@@ -611,7 +673,32 @@ export default function App() {
         formData.append("video", file);
         const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
         const d = await res.json();
-        score = d.fake_probability; prediction = d.prediction;
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null);
+        setXaiData({
+          tokenImportance: [],
+          sentenceScores: (d.frame_scores || []).map((s, i) => ({
+            sentence: `Frame ${i + 1}`,
+            fake_probability: s,
+          })),
+        });
+
+        // ← add this block
+        if (d.gradcam) {
+          const explainRes = await fetch("http://localhost:5000/explain-video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          setGeminiExplanation(explainData.explanation || null);
+        }
       } else if (mode === "text") {
         const res = await fetch("http://localhost:5000/predict-text", {
           method: "POST",
@@ -635,7 +722,9 @@ export default function App() {
       return;
     }
 
-    const isFake = prediction === "fake";
+    const isFake = (typeof prediction === "string"
+      ? prediction.toLowerCase() === "fake"
+      : Boolean(prediction)) || score > 68;
     const isUnc = score >= 45 && score <= 68;
     const color = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
     const glow = isFake ? "rgba(239,68,68,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(74,222,128,.4)";
@@ -666,7 +755,11 @@ export default function App() {
 
   if (!currentUser) return <AuthPage />;
 
-  const canSubmit = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
+  const canSubmit = mode === "text"
+    ? textInput.trim().length > 20
+    : mode === "signature"
+      ? fileLoaded && referenceFile !== null
+      : fileLoaded;
 
   const aboutText =
     "Miraje is a modern deepfake detection system focused on identifying synthetic media through forensic AI, signal analysis, and transformer-based reasoning.";
@@ -789,7 +882,41 @@ export default function App() {
       )}
 
       {/* ── WORKSPACE (?mode=X only) ── */}
-      {initialMode && (
+      {activeNav === "Archive" && initialMode && (
+        <div style={{ padding: "80px 5vw", maxWidth: 1200, margin: "0 auto" }}>
+          <div className="sec-head" style={{ marginBottom: 32, fontSize: 13 }}>Archive</div>
+          {archiveLoading ? (
+            <p style={{ color: "var(--ghost)", fontFamily: "'Inter',monospace", fontSize: 12 }}>Loading…</p>
+          ) : archive.length === 0 ? (
+            <p style={{ color: "var(--ghost)", fontFamily: "'Inter',monospace", fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>
+              No archived cases yet
+            </p>
+          ) : (
+            <div className="table-wrap">
+              <div className="t-head">
+                <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
+              </div>
+              {archive.map((r, i) => (
+                <div key={r.id || i} className="t-row">
+                  <div className="t-file">
+                    <div className="t-glyph">{r.glyph}</div>
+                    <div>
+                      <div className="t-fname">{r.name}</div>
+                      <div className="t-fsize">{r.size}</div>
+                    </div>
+                  </div>
+                  <div className="t-type">{r.type}</div>
+                  <div><span className={`rc-verdict ${r.cls}`}>{r.lbl}</span></div>
+                  <div className="t-conf" style={{ color: r.confClr }}>{r.conf}</div>
+                  <div className="t-date">{r.date}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {initialMode && activeNav !== "Archive" && (
         <main id="workspace-sec">
           <div className="ws-page">
 
@@ -829,7 +956,7 @@ export default function App() {
               className="ws-media-zone"
               onDragOver={onDragOver}
               onDrop={onDrop}
-              onClick={() => mode !== 'text' && fileRef.current?.click()}
+              onClick={() => mode !== 'text' && mode !== 'signature' && fileRef.current?.click()}
             >
               {scanning && <div className="scan-beam" />}
               <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
@@ -849,18 +976,48 @@ export default function App() {
                 </div>
               )}
               {/* ADD THIS BLOCK HERE */}
-              {previewSrc && mode === 'signature' && (
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <img className="ws-media-img" src={previewSrc} alt="preview" />
+              {mode === 'signature' && (
+                <div
+                  style={{ display: 'flex', width: '100%', height: '100%', gap: 2 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Slot 1 — Query signature */}
+                  <div
+                    style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid rgba(250,250,250,0.06)', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+                  >
+                    {previewSrc
+                      ? <img src={previewSrc} alt="query" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      : <div style={{ textAlign: 'center', color: 'var(--fog)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1 }}>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>✦</div>
+                        <div>SIGNATURE TO VERIFY</div>
+                        <div style={{ opacity: 0.5, marginTop: 4, fontSize: 10 }}>Click to upload</div>
+                      </div>
+                    }
+                    <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 9, letterSpacing: 2, color: 'var(--ghost)', fontFamily: "'Inter',monospace", textTransform: 'uppercase' }}>Query</div>
+                  </div>
+
+                  {/* Slot 2 — Reference signature */}
+                  <div
+                    style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); referenceRef.current?.click(); }}
+                  >
+                    {referenceSrc
+                      ? <img src={referenceSrc} alt="reference" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      : <div style={{ textAlign: 'center', color: 'var(--fog)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1 }}>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>✦</div>
+                        <div>REFERENCE SIGNATURE</div>
+                        <div style={{ opacity: 0.5, marginTop: 4, fontSize: 10 }}>Click to upload</div>
+                      </div>
+                    }
+                    <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 9, letterSpacing: 2, color: 'var(--ghost)', fontFamily: "'Inter',monospace", textTransform: 'uppercase' }}>Reference</div>
+                  </div>
+
                   <StampOverlay verdict={verdict} mode={mode} />
                 </div>
               )}
 
-              {!previewSrc && audioSrc === null && file && mode === 'video' && (
-                <video className="ws-media-img"
-                  src={URL.createObjectURL(file)} muted playsInline preload="metadata"
-                  style={{ objectFit: 'cover' }} />
-              )}
+
 
               {audioSrc && (
                 <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -896,7 +1053,7 @@ export default function App() {
                 </div>
               )}
 
-              {!previewSrc && !audioSrc && mode !== 'text' && (
+              {!previewSrc && !audioSrc && mode !== 'text' && mode !== 'signature' && (
                 <div className="ws-empty">
                   <div className="ws-empty-glyph">{getModeGlyph(mode)}</div>
                   <div className="ws-empty-title">Drop to analyse</div>
@@ -911,6 +1068,20 @@ export default function App() {
               )}
               <StampOverlay verdict={verdict} mode={mode} />
             </div>
+            <input
+              type="file"
+              ref={referenceRef}
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const f = e.target.files[0];
+                if (!f) return;
+                setReferenceFile(f);
+                const r = new FileReader();
+                r.onload = ev => setReferenceSrc(ev.target.result);
+                r.readAsDataURL(f);
+              }}
+            />
             <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: 'none' }} />
 
             {/* ── ANALYSIS BAR ── */}
@@ -938,13 +1109,13 @@ export default function App() {
                 )}
               </div>
               <button className="ws-run-btn" disabled={!canSubmit || analysing} onClick={runAnalysis}>
-                {!canSubmit ? (mode === 'text' ? 'Enter text first' : 'No file selected')
+                {!canSubmit ? (mode === 'text' ? 'Enter text first' : mode === 'signature' ? (fileLoaded ? 'Add reference signature' : 'No file selected') : 'No file selected')
                   : analysing ? 'Analysing…'
                     : 'Initiate Analysis →'}
               </button>
             </div>
 
-            {/* ── TEXT XAI PANEL ── */}
+            {/* ── TEXT / VIDEO XAI PANEL ── */}
             {mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
               <div className="ws-results-section">
                 <div className="sec-head">Explainability Report</div>
@@ -952,7 +1123,6 @@ export default function App() {
               </div>
             )}
 
-            {/* ── IMAGE GRADCAM PANEL ── */}
             {/* ── IMAGE GRADCAM PANEL ── */}
             {(mode === 'image' || mode === 'signature') && gradcam && (
               <div className="ws-results-section">
@@ -1038,12 +1208,53 @@ export default function App() {
               </div>
             )}
 
+            {/* ── VIDEO COMPOSITE XAI (matches the notebook figure) ── */}
+            {mode === 'video' && gradcam && (
+              <div className="ws-results-section">
+                <div className="sec-head">Deepfake Detection Analysis — Frame Breakdown</div>
+                <div style={{ overflow: "hidden", position: "relative", paddingBottom: "24%" }}>
+                  <img
+                    src={`data:image/png;base64,${gradcam}`}
+                    alt="Video deepfake analysis"
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      top: "-50%",        /* skip top row */
+                      display: "block",
+                      borderRadius: 8,
+                      border: "1px solid rgba(250,250,250,0.08)",
+                    }}
+                  />
+                </div>
+                {/* ← add this block */}
+                {geminiExplanation && (
+                  <div style={{
+                    marginTop: 16,
+                    padding: "18px 20px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(250,250,250,0.08)",
+                    background: "rgba(250,250,250,0.03)",
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    fontSize: 13,
+                    color: "var(--fog)",
+                    lineHeight: 1.8,
+                    whiteSpace: "pre-wrap",
+                  }}>
+                    <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 10, fontSize: 13, letterSpacing: "0.04em" }}>
+                      ◈ &nbsp;AI Forensic Analyst
+                    </div>
+                    {geminiExplanation}
+                  </div>
+                )}
+              </div>
+
+            )}
             {/* ── HISTORY TABLE ── */}
             <div className="ws-results-section">
               <div className="sec-head">Recent Cases</div>
               <div className="table-wrap">
                 <div className="t-head">
-                  <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
+                  <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div><div></div>
                 </div>
                 {history.length === 0 ? (
                   <div style={{ padding: '28px 24px', color: 'var(--ghost)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' }}>
@@ -1062,6 +1273,37 @@ export default function App() {
                     <div><span className={`rc-verdict ${r.cls}`}>{r.lbl}</span></div>
                     <div className="t-conf" style={{ color: r.confClr }}>{r.conf}</div>
                     <div className="t-date">{r.date}</div>
+                    <div>
+                      <button
+                        onClick={async () => {
+                          if (r._archived) return;
+                          const now = new Date();
+                          const entry = { ...r, timestamp: now.toISOString() };
+                          try {
+                            await addDoc(collection(db, "users", currentUser.uid, "archive"), entry);
+                            setHistory(prev => prev.map((row, j) => j === i ? { ...row, _archived: true } : row));
+                            setArchive(prev => [{ ...entry, id: Date.now().toString() }, ...prev]);
+                          } catch (e) {
+                            console.error("Archive failed:", e);
+                          }
+                        }}
+                        style={{
+                          fontSize: 10,
+                          fontFamily: "'Inter', monospace",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: r._archived ? "var(--safe2)" : "var(--ghost)",
+                          background: "none",
+                          border: "none",
+                          cursor: r._archived ? "default" : "pointer",
+                          padding: "4px 0",
+                          transition: "color 0.2s",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {r._archived ? "✓ Archived" : "+ Archive"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

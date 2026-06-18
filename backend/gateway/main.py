@@ -114,34 +114,50 @@ async def predict_audio(audio: UploadFile = File(...)):
     return response.json()
 
 
+
 @app.post("/predict-signature")
-async def predict_signature(signature: UploadFile = File(...)):
-    contents = await signature.read()
+async def predict_signature(signature: UploadFile = File(...), reference: UploadFile = File(None)):
+    sig_contents = await signature.read()
+    files = {"signature": (signature.filename, sig_contents, signature.content_type)}
+    if reference:
+        ref_contents = await reference.read()
+        files["reference"] = (reference.filename, ref_contents, reference.content_type)
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
             f"{SIGNATURE_SERVICE}/predict-signature",
-            files={"signature": (signature.filename, contents, signature.content_type)}
+            files=files
         )
     return response.json()
 
+
+# AFTER
 @app.post("/explain-signature")
 async def explain_signature(payload: dict):
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
-            f"{SIGNATURE_SERVICE}/explain",
+            f"{SIGNATURE_SERVICE}/explain-signature",
             json=payload,
         )
     return response.json()
+
 @app.post("/predict-video")
 async def predict_video(video: UploadFile = File(...)):
     contents = await video.read()
-    async with httpx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(
             f"{VIDEO_SERVICE}/predict-video",
             files={"video": (video.filename, contents, video.content_type)}
         )
     return response.json()
 
+@app.post("/explain-video")
+async def explain_video(payload: dict):
+    async with httpx.AsyncClient(timeout=60) as client:
+        response = await client.post(
+            f"{VIDEO_SERVICE}/explain-video",
+            json=payload,
+        )
+    return response.json()
 
 @app.post("/predict-text")
 async def predict_text(input: dict):

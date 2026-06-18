@@ -1433,7 +1433,7 @@ a {
 .t-head,
 .t-row {
     display: grid;
-    grid-template-columns: 2.5fr 80px 110px 95px 130px;
+    grid-template-columns: 2.5fr 80px 110px 95px 130px 90px;
     padding: 14px 24px;
     border-bottom: 1px solid var(--cream-20);
     align-items: center;

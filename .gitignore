@@ -31,3 +31,4 @@ backend/audio_model.keras
 backend/signature_forgery_detector.keras
 backend/final_model.pt
 backend/weights.pt
+backend/best_model.pth
