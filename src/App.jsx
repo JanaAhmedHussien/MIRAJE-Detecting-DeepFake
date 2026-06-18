@@ -1,327 +1,76 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import './Miraje.css'
+import './Miraje.css';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
-import UIFace from './assets/UI-face.png';
-
+import imgModuleImg from './assets/modules/image_module.png';
+import vidModuleImg from './assets/modules/video_module.png';
+import audModuleImg from './assets/modules/audio_module.png';
+import sigModuleImg from './assets/modules/signature_module.png';
+import txtModuleImg from './assets/modules/text_module.png';
+import WheelCarousel from "./WheelCarousel";
+import AllWorksButton from "./AllWorksButton";
+import WorksPage from "./WorksPage";
 /* ── DATA CONFIG ── */
 const CFG = {
   image: {
     fmts: ["JPG", "PNG", "WEBP", "GIF", "BMP", "TIFF"],
-    metrics: [
-      { n: "GAN Fingerprint", c: "var(--danger2)" },
-      { n: "Frequency Anomaly", c: "var(--gold)" },
-      { n: "Face Landmark Drift", c: "var(--warn2)" },
-      { n: "Compression Traces", c: "var(--safe2)" }
-    ],
     steps: ["Preprocessing", "Feature Extraction", "GAN Classifier", "Frequency Analysis", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Face Analysis", desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
       { code: "SYS-02", name: "Frequency Domain", desc: "DCT & Fourier transform artifact detection in latent space" },
-      { code: "SYS-03", name: "Texture Forensics", desc: "Pixel-level GAN fingerprint extraction and classification" }
-    ]
+      { code: "SYS-03", name: "Texture Forensics", desc: "Pixel-level GAN fingerprint extraction and classification" },
+    ],
   },
   video: {
     fmts: ["MP4", "MOV", "AVI", "MKV", "WEBM"],
-    metrics: [
-      { n: "Temporal Consistency", c: "var(--danger2)" },
-      { n: "Lip-Sync Alignment", c: "var(--gold)" },
-      { n: "Motion Artifacts", c: "var(--warn2)" },
-      { n: "Frame Coherence", c: "var(--safe2)" }
-    ],
     steps: ["Frame Extraction", "Face Tracking", "Temporal Analysis", "Lip-Sync Check", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Face Swap", desc: "Inter-frame face boundary and blending artifacts across sequence" },
       { code: "SYS-02", name: "Lip Sync", desc: "Audio-visual alignment consistency and phoneme mapping" },
-      { code: "SYS-03", name: "Motion Flow", desc: "Optical flow coherence and unnatural motion detection" }
-    ]
+      { code: "SYS-03", name: "Motion Flow", desc: "Optical flow coherence and unnatural motion detection" },
+    ],
   },
   audio: {
     fmts: ["WAV", "MP3", "FLAC", "OGG", "M4A", "AAC"],
-    metrics: [
-      { n: "Spectral Artifacts", c: "var(--danger2)" },
-      { n: "Prosody Score", c: "var(--gold)" },
-      { n: "Voice Embedding Δ", c: "var(--warn2)" },
-      { n: "Breath Naturalness", c: "var(--safe2)" }
-    ],
     steps: ["Audio Decoding", "Spectrogram Analysis", "Voice Embedding", "Prosody Check", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Voice Cloning", desc: "Latent voice embedding similarity and TTS artifact identification" },
       { code: "SYS-02", name: "Spectrogram", desc: "MFCC deviation and spectral synthesis marker detection" },
-      { code: "SYS-03", name: "Prosody & Rhythm", desc: "Unnatural stress, pacing and breathing pattern analysis" }
-    ]
+      { code: "SYS-03", name: "Prosody & Rhythm", desc: "Unnatural stress, pacing and breathing pattern analysis" },
+    ],
   },
   signature: {
     fmts: ["JPG", "PNG", "PDF", "TIFF", "BMP"],
-    metrics: [
-      { n: "Stroke Velocity", c: "var(--danger2)" },
-      { n: "Pressure Variance", c: "var(--gold)" },
-      { n: "Tremor Analysis", c: "var(--warn2)" },
-      { n: "Loop Consistency", c: "var(--safe2)" }
-    ],
     steps: ["Image Preprocessing", "Stroke Segmentation", "Dynamic Analysis", "Template Matching", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Stroke Dynamics", desc: "Velocity, pressure and pen-lift pattern forensic analysis" },
       { code: "SYS-02", name: "Geometric Match", desc: "Reference template comparison via Dynamic Time Warping" },
-      { code: "SYS-03", name: "Writer Verify", desc: "Neural handwriting style embedding match and comparison" }
-    ]
+      { code: "SYS-03", name: "Writer Verify", desc: "Neural handwriting style embedding match and comparison" },
+    ],
   },
   text: {
     fmts: ["TXT", "DOCX", "PDF"],
-    metrics: [
-      { n: "Linguistic Anomaly", c: "var(--danger2)" },
-      { n: "Semantic Coherence", c: "var(--gold)" },
-      { n: "Perplexity Score", c: "var(--warn2)" },
-      { n: "Burstiness", c: "var(--safe2)" }
-    ],
     steps: ["Tokenization", "Contextual Embedding", "Transformer Attention", "Linguistic Scoring", "Report Generation"],
     results: [
       { code: "SYS-01", name: "AI Authorship", desc: "Detection of LLM generative patterns and statistical anomalies" },
       { code: "SYS-02", name: "Perplexity", desc: "Analysis of predictability and vocabulary variance" },
-      { code: "SYS-03", name: "Semantic Shift", desc: "Detection of unnatural transitions or hallucinated phrasing" }
-    ]
-  }
+      { code: "SYS-03", name: "Semantic Shift", desc: "Detection of unnatural transitions or hallucinated phrasing" },
+    ],
+  },
 };
+
+const DETECTION_SERVICES = [
+  { key: "image", name: "Visual Forgery Detection", sub: "GAN Fingerprinting · Image Analysis", flag: "Live" },
+  { key: "video", name: "Deepfake Video Analysis", sub: "Temporal Coherence · Face-Swap Detection", flag: "Live" },
+  { key: "audio", name: "Synthetic Voice Identification", sub: "Spectral Forensics · Voice Cloning", flag: "Beta" },
+  { key: "signature", name: "Signature Forgery Forensics", sub: "Stroke Dynamics · Handwriting Verification", flag: "Beta" },
+  { key: "text", name: "AI-Authored Text Detection", sub: "Perplexity Analysis · LLM Pattern Recognition", flag: "Live" },
+];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ── ANIMATED STAR CANVAS ── */
-function StarCanvas() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const c = canvasRef.current;
-    const ctx = c.getContext("2d");
-    let W = 0, H = 0, raf, lastTs = 0;
-
-    // Stars defined BEFORE resize so resize can access them
-    const stars = Array.from({ length: 320 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight * 0.65,
-      r: Math.random() * 1.6 + 0.3,
-      baseOp: Math.random() * 0.65 + 0.25,
-      twinkleSpeed: Math.random() * 1.5 + 0.5,
-      phase: Math.random() * Math.PI * 2,
-      vx: (Math.random() - 0.5) * 10,
-      vy: (Math.random() - 0.5) * 3.5,
-      warm: Math.random() < 0.18,
-    }));
-
-    function resize() {
-      W = c.width = window.innerWidth;
-      H = c.height = window.innerHeight;
-      // Redistribute stars that fall outside the new bounds
-      stars.forEach(s => {
-        if (s.x > W) s.x = Math.random() * W;
-        if (s.y > H * 0.65) s.y = Math.random() * H * 0.65;
-      });
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    let shoot = null;
-    let nextShootDelay = 2000 + Math.random() * 3000;
-    let shootTimer = 0;
-
-    let crossers = [];
-    let nextCrossDelay = 3500 + Math.random() * 4000;
-    let crossTimer = 0;
-
-    function spawnShoot() {
-      shoot = {
-        x: W * 0.1 + Math.random() * W * 0.8,
-        y: H * 0.02 + Math.random() * H * 0.25,
-        len: 140 + Math.random() * 100,
-        age: 0,
-        life: 900,
-        angle: Math.PI / 4 + (Math.random() - 0.5) * 0.5,
-      };
-    }
-
-    function spawnCrosser() {
-      const fromLeft = Math.random() < 0.5;
-      crossers.push({
-        x: fromLeft ? -20 : W + 20,
-        y: H * 0.04 + Math.random() * H * 0.48,
-        vx: fromLeft ? (55 + Math.random() * 75) : -(55 + Math.random() * 75),
-        vy: (Math.random() - 0.5) * 18,
-        r: 0.7 + Math.random() * 0.8,
-        tailLen: 70 + Math.random() * 70,
-        life: 0,
-        maxLife: 3500 + Math.random() * 2500,
-        warm: Math.random() < 0.3,
-      });
-    }
-
-    function draw(ts) {
-      const dt = Math.min((ts - lastTs) / 1000, 0.05);
-      lastTs = ts;
-      ctx.clearRect(0, 0, W, H);
-      const t = ts / 1000;
-
-      stars.forEach(s => {
-        s.x += s.vx * dt;
-        s.y += s.vy * dt;
-        if (s.x < -4) s.x = W + 4;
-        if (s.x > W + 4) s.x = -4;
-        if (s.y < -4) s.y = H * 0.65;
-        if (s.y > H * 0.65) s.y = -4;
-
-        const twinkle = 0.45 + 0.55 * Math.sin(t * s.twinkleSpeed + s.phase);
-        const o = s.baseOp * twinkle;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = s.warm ? `rgba(255,228,160,${o})` : `rgba(235,242,255,${o})`;
-        ctx.fill();
-
-        if (s.r > 1.3 && o > 0.5) {
-          const sl = s.r * 3.5;
-          ctx.globalAlpha = o * 0.4;
-          ctx.strokeStyle = s.warm ? `rgba(255,215,120,1)` : `rgba(190,215,255,1)`;
-          ctx.lineWidth = 0.5;
-          ctx.beginPath(); ctx.moveTo(s.x - sl, s.y); ctx.lineTo(s.x + sl, s.y); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(s.x, s.y - sl); ctx.lineTo(s.x, s.y + sl); ctx.stroke();
-          ctx.globalAlpha = 1;
-        }
-      });
-
-      // Shooting star
-      shootTimer += dt * 1000;
-      if (shootTimer >= nextShootDelay && !shoot) {
-        spawnShoot();
-        shootTimer = 0;
-        nextShootDelay = 3000 + Math.random() * 5000;
-      }
-      if (shoot) {
-        shoot.age += dt * 1000;
-        const prog = shoot.age / shoot.life;
-        if (prog >= 1) {
-          shoot = null;
-        } else {
-          const alpha = prog < 0.3 ? prog / 0.3 : prog > 0.7 ? (1 - prog) / 0.3 : 1;
-          const ex = shoot.x + Math.cos(shoot.angle) * shoot.len * prog;
-          const ey = shoot.y + Math.sin(shoot.angle) * shoot.len * prog;
-          const grad = ctx.createLinearGradient(shoot.x, shoot.y, ex, ey);
-          grad.addColorStop(0, 'rgba(255,245,210,0)');
-          grad.addColorStop(0.5, `rgba(255,245,210,${alpha * 0.9})`);
-          grad.addColorStop(1, 'rgba(255,245,210,0)');
-          ctx.save();
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 1.8;
-          ctx.beginPath();
-          ctx.moveTo(shoot.x, shoot.y);
-          ctx.lineTo(ex, ey);
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-
-      // Crossing stars
-      crossTimer += dt * 1000;
-      if (crossTimer >= nextCrossDelay && crossers.length < 2) {
-        spawnCrosser();
-        crossTimer = 0;
-        nextCrossDelay = 3000 + Math.random() * 5000;
-      }
-      crossers = crossers.filter(cr => {
-        cr.life += dt * 1000;
-        cr.x += cr.vx * dt;
-        cr.y += cr.vy * dt;
-        if (cr.life >= cr.maxLife || cr.x < -200 || cr.x > W + 200) return false;
-        const prog = cr.life / cr.maxLife;
-        const alpha = prog < 0.12 ? prog / 0.12 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
-        const tailX = cr.x - Math.sign(cr.vx) * cr.tailLen;
-        const grad = ctx.createLinearGradient(tailX, cr.y, cr.x, cr.y);
-        grad.addColorStop(0, 'rgba(255,245,210,0)');
-        grad.addColorStop(1, cr.warm ? `rgba(255,220,140,${alpha * 0.8})` : `rgba(200,225,255,${alpha * 0.8})`);
-        ctx.save();
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = cr.r;
-        ctx.beginPath();
-        ctx.moveTo(tailX, cr.y);
-        ctx.lineTo(cr.x, cr.y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cr.x, cr.y, cr.r * 1.4, 0, Math.PI * 2);
-        ctx.fillStyle = cr.warm ? `rgba(255,230,160,${alpha})` : `rgba(220,235,255,${alpha})`;
-        ctx.fill();
-        ctx.restore();
-        return true;
-      });
-
-      raf = requestAnimationFrame(draw);
-    }
-
-    raf = requestAnimationFrame(draw);
-    return () => { window.removeEventListener("resize", resize); cancelAnimationFrame(raf); };
-  }, []);
-
-  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }} />;
-}
-
-/* ── SVG SAND DUNES ── */
-function SandDunes() {
-  return (
-    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, pointerEvents: "none" }}>
-      <svg viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ width: "100%", height: 120, display: "block" }}>
-        <defs>
-          <linearGradient id="dune1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2c1e08" />
-            <stop offset="100%" stopColor="#0e0d06" />
-          </linearGradient>
-        </defs>
-        <path d="M0,80 C120,45 280,100 440,65 C600,30 720,90 900,55 C1080,20 1250,75 1440,50 L1440,120 L0,120 Z" fill="url(#dune1)" />
-      </svg>
-      <svg viewBox="0 0 1440 90" preserveAspectRatio="none" style={{ width: "100%", height: 90, display: "block", marginTop: -2 }}>
-        <defs>
-          <linearGradient id="dune2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#221608" />
-            <stop offset="100%" stopColor="#090806" />
-          </linearGradient>
-          <linearGradient id="duneRidge" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,225,140,0.12)" />
-            <stop offset="100%" stopColor="rgba(255,225,140,0)" />
-          </linearGradient>
-        </defs>
-        <path d="M0,50 C200,20 400,70 600,30 C800,-10 1000,60 1200,25 C1320,8 1380,40 1440,20 L1440,90 L0,90 Z" fill="url(#dune2)" />
-        <path d="M0,50 C200,20 400,70 600,30 C800,-10 1000,60 1200,25 C1320,8 1380,40 1440,20" fill="none" stroke="url(#duneRidge)" strokeWidth="3" />
-      </svg>
-    </div>
-  );
-}
-
-/* ── CURSOR ── */
-function Cursor() {
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  useEffect(() => {
-    let mx = 0, my = 0, rx = 0, ry = 0, raf;
-    const onMove = e => {
-      mx = e.clientX; my = e.clientY;
-      if (curRef.current) { curRef.current.style.left = (mx - 3) + "px"; curRef.current.style.top = (my - 3) + "px"; }
-    };
-    document.addEventListener("mousemove", onMove);
-    function loop() {
-      rx += (mx - rx - 12) * .1; ry += (my - ry - 12) * .1;
-      if (ringRef.current) { ringRef.current.style.left = rx + "px"; ringRef.current.style.top = ry + "px"; }
-      raf = requestAnimationFrame(loop);
-    }
-    loop();
-    const addHov = () => {
-      document.querySelectorAll("button,.mode-tile,.drop-zone,.stat,.result-card,.t-row").forEach(el => {
-        el.addEventListener("mouseenter", () => { curRef.current?.classList.add("hov"); ringRef.current?.classList.add("hov"); });
-        el.addEventListener("mouseleave", () => { curRef.current?.classList.remove("hov"); ringRef.current?.classList.remove("hov"); });
-      });
-    };
-    setTimeout(addHov, 600);
-    return () => { document.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
-  }, []);
-  return (
-    <>
-      <div ref={curRef} className="cursor" />
-      <div ref={ringRef} className="cursor-ring" />
-    </>
-  );
+function getModeGlyph(m) {
+  return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : m === "text" ? "¶" : "✦";
 }
 
 /* ── VERDICT RING ── */
@@ -333,8 +82,7 @@ function VerdictRing({ score, color, glow }) {
         <circle className="vr-bg" cx="55" cy="55" r="47" />
         <circle className="vr-track" cx="55" cy="55" r="47" />
         <circle className="vr-fill" cx="55" cy="55" r="47"
-          style={{ strokeDashoffset: offset, stroke: color || "var(--rim2)", filter: glow ? `drop-shadow(0 0 8px ${glow})` : "none" }} />
-        <circle className="vr-spin" cx="55" cy="55" r="52" />
+          style={{ strokeDashoffset: offset, stroke: color || "var(--cream-30)", filter: glow ? `drop-shadow(0 0 8px ${glow})` : "none" }} />
       </svg>
       <div className="vring-center">
         <div className="vr-pct" style={{ color: color || "var(--ghost)", textShadow: glow ? `0 0 22px ${glow}` : "none" }}>
@@ -346,30 +94,14 @@ function VerdictRing({ score, color, glow }) {
   );
 }
 
-/* ── METRIC BAR ── */
-function MetricBar({ name, color, value, label }) {
-  return (
-    <div className="metric">
-      <div className="metric-row">
-        <span className="metric-name">{name}</span>
-        <span className="metric-val">{label}</span>
-      </div>
-      <div className="track">
-        <div className="fill" style={{ width: `${value}%`, background: color }}>
-          <div className="fill-dot" style={{ background: color }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── RESULT CARD ── */
 function ResultCard({ code, name, desc, score, mode, visible }) {
-  const fake = score > 68, unc = score >= 45 && score <= 68;
+  const fake = score > 68;
+  const unc = score >= 45 && score <= 68;
   const cls = fake ? "v-fake" : unc ? "v-unc" : "v-real";
   const lbl = fake ? (mode === "signature" ? "Forged" : "Synthetic") : unc ? "Inconclusive" : "Authentic";
   const clr = fake ? "var(--danger2)" : unc ? "var(--warn2)" : "var(--safe2)";
-  const g = fake ? "rgba(232,115,107,.28)" : unc ? "rgba(212,165,85,.28)" : "rgba(104,212,174,.28)";
+  const g = fake ? "rgba(239,68,68,.25)" : unc ? "rgba(212,165,85,.25)" : "rgba(74,222,128,.25)";
   return (
     <div className="result-card">
       <div className="rc-code">
@@ -381,7 +113,7 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
         color: clr, textShadow: `0 0 22px ${g}`,
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(10px)",
-        transition: "opacity .65s ease, transform .65s ease"
+        transition: "opacity .65s ease, transform .65s ease",
       }}>
         {score.toFixed(1)}<span style={{ fontSize: 18, color: "var(--fog)", textShadow: "none" }}>%</span>
       </div>
@@ -390,22 +122,22 @@ function ResultCard({ code, name, desc, score, mode, visible }) {
   );
 }
 
+/* ── XAI PANEL (text mode) ── */
 function XAIPanel({ tokenImportance, sentenceScores }) {
-  // Re-normalize relative to the actual min/max in this response
-  // (safety net in case backend values still cluster in a narrow band)
   const allImps = tokenImportance.map(t => t.importance);
   const impMin = allImps.length ? Math.min(...allImps) : 0;
   const impMax = allImps.length ? Math.max(...allImps) : 1;
   const impRange = (impMax - impMin) || 1;
 
-  const getStyle = (imp) => {
-    const n = (imp - impMin) / impRange;   // always 0–1 relative to this text
+  const getStyle = imp => {
+    const n = (imp - impMin) / impRange;
     if (n < 0.20) return { color: '#7a8098', background: 'transparent' };
     if (n < 0.40) return { color: '#c8b860', background: 'rgba(232,192,64,0.12)' };
     if (n < 0.60) return { color: '#e09040', background: 'rgba(220,140,60,0.22)' };
     if (n < 0.80) return { color: '#e86848', background: 'rgba(220,90,60,0.28)' };
     return { color: '#ff5858', background: 'rgba(240,60,60,0.34)', fontWeight: 600 };
   };
+
   return (
     <div className="xai-panel">
       {tokenImportance.length > 0 && (
@@ -413,7 +145,9 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
           <div className="xai-sec-head">◈ &nbsp;Linguistic Influence Map</div>
           <div className="xai-legend">
             {[['#7a8098', 'Neutral'], ['#c8b860', 'Low'], ['#e09040', 'Medium'], ['#e86848', 'High'], ['#ff5858', 'Critical']].map(([c, l]) => (
-              <span key={l} className="xai-leg-item"><span className="xai-leg-dot" style={{ background: c }} />{l}</span>
+              <span key={l} className="xai-leg-item">
+                <span className="xai-leg-dot" style={{ background: c }} />{l}
+              </span>
             ))}
           </div>
           <div className="xai-note">Words highlighted in red/orange most strongly influenced the AI detection decision</div>
@@ -429,7 +163,7 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
       {sentenceScores.length > 0 && (
         <div className="xai-sentences-section">
           <div className="xai-sec-head" style={{ marginTop: tokenImportance.length ? 36 : 0 }}>◈ &nbsp;Sentence-Level Breakdown</div>
-          <div className="xai-note">Each sentence scored independently — higher % = more AI-like patterns detected</div>
+          <div className="xai-note">Each sentence scored independently — higher % indicates more AI-like patterns</div>
           <div className="xai-sent-list">
             {sentenceScores.map((s, i) => {
               const clr = s.fake_probability > 68 ? '#e8736b' : s.fake_probability > 45 ? '#d4a855' : '#68d4ae';
@@ -455,13 +189,257 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
   );
 }
 
+/* ── SERVICE ROW ── */
+function ServiceRow({ service, index }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <a
+      href={`?mode=${service.key}`}
+      className={`svc-row${hovered ? " hovered" : ""}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ animationDelay: `${index * 0.08}s` }}
+    >
+      <div className="svc-row-left">
+        <span className="svc-row-name">{service.name}</span>
+        <span className="svc-row-sub">{service.sub}</span>
+      </div>
+      <div className="svc-row-right">
+        <div className="svc-arrow-wrap">
+          <svg
+            viewBox="0 0 24 24" width="28" height="28"
+            stroke="currentColor" strokeWidth="1.5" fill="none"
+            strokeLinecap="round" strokeLinejoin="round"
+            className="svc-arrow-icon"
+            style={{
+              transform: hovered ? "rotate(45deg)" : "rotate(0deg)",
+              transition: "transform .35s cubic-bezier(.22,1,.36,1)",
+            }}
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </div>
+      </div>
+    </a>
+  );
+}
 
+/* ── FOOTER  ── */
+const CAROUSEL_IMAGES = [
+  "https://framerusercontent.com/images/fr3tcuvrhcc92fVb42dWaZgMiY0.png",
+  "https://framerusercontent.com/images/s1S9fPZ18MTx8XwZarkezh4Bk.png",
+  "https://framerusercontent.com/images/v60krc4Q1kxdiaOdGzy14IKqJw.png",
+  "https://framerusercontent.com/images/TWOqDfYTYLpmjpIpzH23KjDxJmA.png",
+  "https://framerusercontent.com/images/VhISKNWI9OBLHkvGRYnKNtRakM.png",
+  "https://framerusercontent.com/images/EKOgTR9G2g6XvBP7MM3OTP1Ubo.png",
+  "https://framerusercontent.com/images/qvHVjBQ3YMUybtpO7OOKQOKHNA.png",
+  "https://framerusercontent.com/images/TB7DyRCNPXNMXOqT2fzIVSHG62Q.png",
+];
+
+const HEIGHTS = [300, 200, 320, 190, 280, 210, 300, 180, 290, 205];
+
+const ITEMS = [...CAROUSEL_IMAGES, ...CAROUSEL_IMAGES];
+
+
+
+function FooterCarousel() {
+  const trackRef = useRef(null);
+  const rafRef = useRef(null);
+  const posRef = useRef(0);
+  const pauseRef = useRef(false);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const tick = () => {
+      if (!pauseRef.current) {
+        posRef.current += 0.9;
+        const half = track.scrollWidth / 2;
+        if (posRef.current >= half) posRef.current -= half;
+        track.style.transform = `translateX(-${posRef.current}px)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  return (
+    <div
+      className="fc-viewport"
+      onMouseEnter={() => { pauseRef.current = true; }}
+      onMouseLeave={() => { pauseRef.current = false; }}
+    >
+      <div className="fc-track" ref={trackRef}>
+        {ITEMS.map((src, i) => {
+          const h = HEIGHTS[i % HEIGHTS.length];
+          return (
+            <div
+              key={i}
+              className="fc-item"
+              style={{ height: h }}
+            >
+              <img src={src} alt="" loading="lazy" draggable={false} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="site-footer">
+
+      <div className="footer-cta-strip">
+        <p className="footer-cta-text">
+          Let Miraje reveal<br />
+          <em>what's really there.</em>
+        </p>
+        <a href="mailto:hello@miraje.ai" className="footer-cta-link">
+          GET IN TOUCH&nbsp;↗
+        </a>
+      </div>
+
+      <FooterCarousel />
+
+      <div className="footer-rule" />
+
+      <div className="footer-top">
+
+        <div className="footer-col">
+          <div className="footer-col-label">Navigate</div>
+          <a href="/#about-section" className="footer-link">About</a>
+          <a href="/" className="footer-link">Detection Modules</a>
+          <a href="/?mode=image" className="footer-link">Image Analysis</a>
+          <a href="/?mode=video" className="footer-link">Video Analysis</a>
+          <a href="/?mode=text" className="footer-link">Text Analysis</a>
+        </div>
+
+        <div className="footer-col">
+          <div className="footer-col-label">Modules</div>
+          <a href="/?mode=image" className="footer-link">Visual Forgery</a>
+          <a href="/?mode=video" className="footer-link">Deepfake Video</a>
+          <a href="/?mode=audio" className="footer-link">Synthetic Voice</a>
+          <a href="/?mode=signature" className="footer-link">Signature Forensics</a>
+          <a href="/?mode=text" className="footer-link">AI Text Detection</a>
+        </div>
+
+        <div className="footer-col">
+          <div className="footer-col-label">Contact</div>
+          <a href="mailto:hello@miraje.ai" className="footer-link">hello@miraje.ai</a>
+          <span className="footer-link">+1 812 3456 7890</span>
+          <span className="footer-link">Cairo, Egypt</span>
+        </div>
+
+        <div className="footer-col">
+          <div className="footer-col-label">Newsletter</div>
+          <p className="footer-newsletter-desc">
+            Get forensic insights, detection updates, and research delivered to your inbox.
+          </p>
+          <div className="footer-newsletter-form">
+            <input
+              type="email"
+              placeholder="Fill your email address"
+              className="footer-newsletter-input"
+            />
+            <button className="footer-newsletter-btn" aria-label="Subscribe">↗</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div className="footer-bottom">
+        <span>© 2025 Miraje — All rights reserved</span>
+        <span className="footer-bottom-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+          <em>Miraje</em>
+        </span>
+      </div>
+
+    </footer>
+  );
+}
+
+
+function StampOverlay({ verdict, mode }) {
+  if (!verdict || verdict.score == null) return null;
+
+  const isFake = verdict.score > 68;
+  const isUnc = verdict.score >= 45 && verdict.score <= 68;
+
+  const color = isFake ? "#ef4444" : isUnc ? "#facc15" : "#4ade80";
+  const topText = isFake ? "SYNTHETIC MEDIA" : isUnc ? "UNVERIFIED MEDIA" : "VERIFIED MEDIA";
+  const mainText = isFake
+    ? (mode === "signature" ? "FORGED" : "FAKE")
+    : isUnc ? "INCONCLUSIVE" : "AUTHENTIC";
+  const slash = isFake;
+
+  const dots = Array.from({ length: 34 }, (_, i) => {
+    const angle = (i / 34) * 2 * Math.PI - Math.PI / 2;
+    return { cx: 80 + 73 * Math.cos(angle), cy: 80 + 73 * Math.sin(angle) };
+  });
+
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: 28,
+      right: 36,
+      pointerEvents: "none",
+      zIndex: 10,
+      animation: "stampIn 0.45s cubic-bezier(.17,.67,.35,1.3) forwards",
+    }}>
+      <svg width="170" height="170" viewBox="0 0 160 160">
+        <defs>
+          <style>{`@keyframes stampIn { from { transform: scale(2.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+        </defs>
+        <g opacity="0.93">
+          <circle cx="80" cy="80" r="72" fill="none" stroke={color} strokeWidth="3.5" />
+          <circle cx="80" cy="80" r="64" fill="none" stroke={color} strokeWidth="1.2" />
+          {dots.map((d, i) => <circle key={i} cx={d.cx} cy={d.cy} r="2.2" fill={color} />)}
+          {slash && (
+            <line x1="24" y1="56" x2="136" y2="104" stroke={color} strokeWidth="4.5" strokeLinecap="round" opacity="0.65" />
+          )}
+          <path id={`arc-top-${mode}`} d="M 26,80 A 54,54 0 0 1 134,80" fill="none" />
+          <text fontFamily="Inter,sans-serif" fontSize="11" fontWeight="600" fill={color} letterSpacing="3">
+            <textPath href={`#arc-top-${mode}`} startOffset="50%" textAnchor="middle">{topText}</textPath>
+          </text>
+          <text x="80" y="78" textAnchor="middle" fontFamily="Inter,sans-serif"
+            fontSize={mainText.length > 9 ? "13" : "20"} fontWeight="700" fill={color} letterSpacing="1.5">
+            {mainText}
+          </text>
+          {["46", "56", "66"].map((x, i) => (
+            <text key={i} x={[50, 80, 110][i]} y="94" textAnchor="middle" fontFamily="sans-serif" fontSize="9" fill={color}>★</text>
+          ))}
+          <path id={`arc-bot-${mode}`} d="M 26,80 A 54,54 0 0 0 134,80" fill="none" />
+          <text fontFamily="Inter,sans-serif" fontSize="10" fontWeight="500" fill={color} letterSpacing="2.5" opacity="0.85">
+            <textPath href={`#arc-bot-${mode}`} startOffset="50%" textAnchor="middle">MIRAJE · AI FORENSICS</textPath>
+          </text>
+        </g>
+      </svg>
+    </div>
+  );
+}
 
 /* ── MAIN APP ── */
 export default function App() {
   const { currentUser, logout } = useAuth();
-  if (!currentUser) return <AuthPage />;
-  const [mode, setModeKey] = useState("image");
+
+  const pathname = window.location.pathname;
+
+  if (pathname === "/works") {
+    return <WorksPage />;
+  }
+
+  const [initialMode] = useState(() => new URLSearchParams(window.location.search).get('mode'));
+  const [mode, setModeKey] = useState(initialMode || "image");
   const [fileLoaded, setFileLoaded] = useState(false);
   const [previewSrc, setPreviewSrc] = useState(null);
   const [fileName, setFileName] = useState(null);
@@ -471,7 +449,6 @@ export default function App() {
   const [analysing, setAnalysing] = useState(false);
   const [pipelineSteps, setPipelineSteps] = useState([]);
   const [pipelineVisible, setPipelineVisible] = useState(false);
-  const [metrics, setMetrics] = useState([]);
   const [verdict, setVerdict] = useState({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
   const [results, setResults] = useState([]);
   const [visibleScores, setVisibleScores] = useState([]);
@@ -480,25 +457,48 @@ export default function App() {
   const [textInput, setTextInput] = useState("");
   const [history, setHistory] = useState([]);
   const [xaiData, setXaiData] = useState({ tokenImportance: [], sentenceScores: [] });
-  const [sentenceScores, setSentenceScores] = useState([]);
+  const [gradcam, setGradcam] = useState(null);   // ← GradCAM heatmap (base64 PNG)
+  const [geminiExplanation, setGeminiExplanation] = useState(null);
+
   const fileRef = useRef(null);
   const cfg = CFG[mode];
+  const aboutRef = useRef(null);
 
+  // Reset all result state when mode changes
   useEffect(() => {
-    setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
-    setResults([]); setPipelineVisible(false);
+    setResults([]);
+    setPipelineVisible(false);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
+    setGradcam(null);   // ← reset GradCAM on mode switch
+    setGeminiExplanation(null);
   }, [mode]);
 
+  /* About word-reveal animation — only fires scrolling down */
   useEffect(() => {
-    setMetrics(cfg.metrics.map(m => ({ ...m, value: 0, label: "—" })));
+    if (!aboutRef.current) return;
+    let prevY = window.scrollY;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (!aboutRef.current) return;
+        const words = aboutRef.current.querySelectorAll('.about-word');
+        const scrollingDown = window.scrollY >= prevY;
+        prevY = window.scrollY;
+        if (entry.isIntersecting && scrollingDown) {
+          words.forEach(w => { w.style.animation = 'none'; w.style.opacity = '0'; });
+          void aboutRef.current.offsetHeight;
+          words.forEach(w => { w.style.animation = ''; w.style.animationPlayState = 'running'; });
+        } else if (!entry.isIntersecting && !scrollingDown) {
+          words.forEach(w => { w.style.animation = 'none'; w.style.opacity = '0'; });
+        }
+      },
+      { threshold: 0 }
+    );
+    obs.observe(aboutRef.current);
+    const onScroll = () => { prevY = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { obs.disconnect(); window.removeEventListener('scroll', onScroll); };
   }, []);
-
-  function handleSetMode(k) {
-    setModeKey(k);
-    setFileLoaded(false); setPreviewSrc(null); setFileName(null); setFileSize(null);
-  }
 
   function loadFile(f) {
     setFile(f);
@@ -506,7 +506,11 @@ export default function App() {
     setFileName(f.name);
     setFileSize((f.size / 1024 / 1024).toFixed(2));
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
-    setResults([]); setPipelineVisible(false);
+    setResults([]);
+    setPipelineVisible(false);
+    setGradcam(null);   // ← reset GradCAM on new file
+    setGeminiExplanation(null);
+
     if (f.type.startsWith("image/")) {
       const r = new FileReader();
       r.onload = e => setPreviewSrc(e.target.result);
@@ -517,12 +521,15 @@ export default function App() {
       setPreviewSrc(null);
     } else if (f.type.startsWith("text/") || f.name.endsWith(".txt")) {
       const r = new FileReader();
-      r.onload = e => {
-        setTextInput(e.target.result);
-      };
+      r.onload = e => setTextInput(e.target.result);
       r.readAsText(f);
-      setPreviewSrc(null); setAudioSrc(null);
-    } else { setPreviewSrc(null); setAudioSrc(null); }
+      setPreviewSrc(null);
+      setAudioSrc(null);
+    } else {
+      setPreviewSrc(null);
+      setAudioSrc(null);
+    }
+
     setScanning(true);
     setTimeout(() => setScanning(false), 3200);
   }
@@ -535,8 +542,11 @@ export default function App() {
     const canRun = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
     if (!canRun || analysing) return;
 
-    setAnalysing(true); setPipelineVisible(true);
-    setXaiData({ tokenImportance: [], sentenceScores: [] }); setSentenceScores([]);
+    setAnalysing(true);
+    setPipelineVisible(true);
+    setXaiData({ tokenImportance: [], sentenceScores: [] });
+    setGradcam(null);   // ← clear stale heatmap before new run
+    setGeminiExplanation(null);
 
     const steps = cfg.steps.map(s => ({ label: s, state: "pending" }));
     setPipelineSteps(steps);
@@ -549,24 +559,59 @@ export default function App() {
     let score = null, prediction = null;
     try {
       const formData = new FormData();
+
       if (mode === "image") {
         formData.append("image", file);
-        const res = await fetch("http://localhost:5000/predict-image", { method: "POST", body: formData });
-        const d = await res.json(); score = d.fake_probability; prediction = d.prediction;
+        const res = await fetch("http://localhost:5000/predict-image-v2", { method: "POST", body: formData });
+        const d = await res.json();
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null)
+        if (d.gradcam) {
+          const explainRes = await fetch("http://localhost:5000/explain-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          setGeminiExplanation(explainData.explanation || null);
+        };   // ← store GradCAM heatmap
       } else if (mode === "audio") {
         formData.append("audio", file);
         const res = await fetch("http://localhost:5000/predict-audio", { method: "POST", body: formData });
-        const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+        const d = await res.json();
+        score = d.score ?? d.fake_probability; prediction = d.prediction;
       } else if (mode === "signature") {
         formData.append("signature", file);
         const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
-        const d = await res.json(); score = d.score ?? d.fake_probability; prediction = d.prediction;
+        const d = await res.json();
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null);
+        if (d.gradcam) {
+          const explainRes = await fetch("http://localhost:5000/explain-signature", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          setGeminiExplanation(explainData.explanation || null);
+        }
       } else if (mode === "video") {
         formData.append("video", file);
         const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
         const d = await res.json();
-        score = d.fake_probability;
-        prediction = d.prediction;
+        score = d.fake_probability; prediction = d.prediction;
       } else if (mode === "text") {
         const res = await fetch("http://localhost:5000/predict-text", {
           method: "POST",
@@ -574,38 +619,29 @@ export default function App() {
           body: JSON.stringify({ text: textInput }),
         });
         const d = await res.json();
-        score = d.fake_probability;
-        prediction = d.prediction;
+        score = d.fake_probability; prediction = d.prediction;
         setXaiData({ tokenImportance: d.token_importance || [], sentenceScores: d.sentence_scores || [] });
-        setSentenceScores(d.sentence_scores || []);
       }
     } catch (err) {
       console.error("API error:", err);
       setAnalysing(false);
-      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Connection Error", note: "Could not reach the backend server" });
+      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(239,68,68,.4)", word: "Connection Error", note: "Could not reach the backend server" });
       return;
     }
 
     if (score == null) {
       setAnalysing(false);
-      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(232,115,107,.4)", word: "Error", note: "Backend returned invalid response" });
+      setVerdict({ score: 0, color: "var(--danger2)", glow: "rgba(239,68,68,.4)", word: "Error", note: "Backend returned invalid response" });
       return;
     }
 
     const isFake = prediction === "fake";
     const isUnc = score >= 45 && score <= 68;
     const color = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
-    const glow = isFake ? "rgba(232,115,107,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(104,212,174,.4)";
-    const word = isFake
-      ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected")
-      : isUnc ? "Inconclusive" : "Authentic";
+    const glow = isFake ? "rgba(239,68,68,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(74,222,128,.4)";
+    const word = isFake ? (mode === "signature" ? "Forgery Confirmed" : "Synthetic Detected") : isUnc ? "Inconclusive" : "Authentic";
 
     setVerdict({ score, color, glow, word, note: `${score.toFixed(1)}% synthetic probability` });
-    setMetrics(cfg.metrics.map((m, i) => ({
-      ...m,
-      value: Math.max(0, score - i * 6),
-      label: (Math.max(0, score - i * 6)).toFixed(1) + "%"
-    })));
     setResults(cfg.results.map(r => ({ ...r, score })));
     setVisibleScores([]);
     await sleep(80);
@@ -620,298 +656,423 @@ export default function App() {
       type: mode.charAt(0).toUpperCase() + mode.slice(1),
       cls: isFake ? "v-fake" : isUnc ? "v-unc" : "v-real",
       lbl: isFake ? (mode === "signature" ? "Forged" : "Synthetic") : isUnc ? "Inconclusive" : "Authentic",
-      conf: score.toFixed(1) + "%", confClr: color, date: dateStr
+      conf: score.toFixed(1) + "%",
+      confClr: color,
+      date: dateStr,
     }, ...prev]);
+
     setAnalysing(false);
   }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize, textInput]);
- 
-  function getModeGlyph(m) {
-        return m === "image" ? "▣" : m === "video" ? "▶" : m === "audio" ? "♪" : m === "text" ? "¶" : "✦";
-    }
- 
+
+  if (!currentUser) return <AuthPage />;
+
+  const canSubmit = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
+
+  const aboutText =
+    "Miraje is a modern deepfake detection system focused on identifying synthetic media through forensic AI, signal analysis, and transformer-based reasoning.";
 
   return (
     <>
-      <Cursor />
-
-      {/* HEADER */}
-      <header>
+      {/* ── HEADER ── */}
+      <header className="bidaya-header">
         <div className="brand">
-          <div className="brand-wordmark">MIRAJE</div>
-          <div className="brand-divider" />
-          <div className="brand-tagline">Where Reality Dissolves</div>
+          <div className="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div className="brand-wordmark">Miraje</div>
         </div>
-        <nav>
+        <nav className="header-nav">
           {["Analysis", "Archive", "Reports", "System"].map(n => (
-            <button key={n} className={`nav-btn${activeNav === n ? " active" : ""}`} onClick={() => setActiveNav(n)}>{n}</button>
+            <button key={n} className={`nav-link${activeNav === n ? " active" : ""}`} onClick={() => setActiveNav(n)}>{n}</button>
           ))}
         </nav>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div className="sys-status">
-            <div className="pulse-dot" />
-            <span>Systems Online</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, borderLeft: "1px solid rgba(232,192,64,0.12)", paddingLeft: 16 }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ghost)", letterSpacing: 1, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {currentUser.email}
+        <div className="header-actions">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+            <span style={{
+              fontFamily: "'Be Vietnam Pro', sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "rgba(43,49,51,0.85)",
+              letterSpacing: "-0.01em",
+            }}>
+              {currentUser.displayName ?? currentUser.email.split("@")[0]}
             </span>
-            <button
-              onClick={logout}
-              style={{ background: "none", border: "1px solid rgba(232,192,64,0.2)", borderRadius: 4, color: "var(--ghost)", fontFamily: "'JetBrains Mono', monospace", fontSize: 8, letterSpacing: 2, textTransform: "uppercase", padding: "5px 13px", cursor: "none", transition: "color .2s, border-color .2s" }}
-              onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(232,115,107,.4)"; }}
-              onMouseLeave={e => { e.target.style.color = "var(--ghost)"; e.target.style.borderColor = "rgba(232,192,64,0.2)"; }}
-            >Logout</button>
           </div>
+          <button
+            onClick={logout}
+            style={{
+              border: "1px solid rgba(43,49,51,0.18)", borderRadius: 4,
+              color: "rgba(43,49,51,0.6)", fontFamily: "'Inter',monospace",
+              fontSize: 9, letterSpacing: 2, textTransform: "uppercase",
+              padding: "5px 13px", background: "none", cursor: "pointer",
+              transition: "color .2s, border-color .2s",
+            }}
+            onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(239,68,68,.4)"; }}
+            onMouseLeave={e => { e.target.style.color = "rgba(43,49,51,0.6)"; e.target.style.borderColor = "rgba(43,49,51,0.18)"; }}
+          >
+            Logout
+          </button>
         </div>
       </header>
 
-      {/* HERO */}
-      <div className="hero">
-        <div className="sky"><StarCanvas /></div>
-        <SandDunes />
-        <div className="horizon-glow" />
-        <div className="horizon-line" />
-        <div className="figure" />
-        <div className="pool">
-          {[{ d: "3.2s", delay: "0s", op: .5 }, { d: "4.1s", delay: ".5s", op: .32 }, { d: "3.7s", delay: "1s", op: .2 }, { d: "5s", delay: "1.7s", op: .1 }].map((p, i) => (
-            <div key={i} className="pool-wave" style={{ "--d": p.d, "--delay": p.delay, "--op": p.op, bottom: i * 6 + "px" }} />
-          ))}
-        </div>
-        <div className="heat">
-          {[{ d: "3.5s", dl: "0s", op: .10 }, { d: "4.2s", dl: ".4s", op: .07 }, { d: "3.9s", dl: ".9s", op: .06 }, { d: "5.1s", dl: "1.5s", op: .04 }, { d: "4.6s", dl: "2.1s", op: .03 }].map((h, i) => (
-            <div key={i} className="heat-wave" style={{ "--d": h.d, "--delay": h.dl, "--op": h.op, bottom: i * 20 + "px" }} />
-          ))}
-        </div>
-        <div className="reflection">
-          {[{ d: "4s", dl: "0s", op: .14 }, { d: "5.5s", dl: ".7s", op: .09 }, { d: "4.8s", dl: "1.4s", op: .05 }, { d: "6s", dl: "2s", op: .03 }].map((r, i) => (
-            <div key={i} className="ref-band" style={{ "--d": r.d, "--delay": r.dl, "--op": r.op, bottom: i * 7 + "px" }} />
-          ))}
-        </div>
-        <div className="scene-label sl-tl">Optical Illusion</div>
-        <div className="scene-label sl-tr">Light · Bending</div>
-        <div className="scene-label sl-horizon">— horizon —</div>
-        <div className="scene-label sl-br">Desert · Mirage · 28.4°N</div>
-        <div className="hero-fade" />
+      {/* ── LANDING ONLY: Hero + About + Carousel + Services ── */}
+      {!initialMode && (
+        <>
+          <div className="slide-stack">
 
-        <div className="hero-text">
-          {/* HEADLINE — left column */}
-          <div className="hero-headline">
-            <h1 className="hero-title">
-              Nothing is what<br />
-              <em data-text="it appears.">it appears.</em>
-            </h1>
-            <p className="hero-desc">Like a mirage on the horizon — synthetic media deceives the eye. Miraje sees through the distortion, revealing what is real and what was constructed.</p>
-            <div className="hero-quote">
-              <div className="hq-mark">"</div>
-              <div className="hq-text">A mirage is not a lie. It is light, bending. Deepfakes are the same — truth, refracted through a machine.</div>
-            </div>
-          </div>
-
-          {/* FACE IMAGE — right column */}
-          <div className="hero-face-wrap" style={{ animation: "fadeUp 1.1s var(--ease-out) .5s both" }}>
-            <div className="hero-face-frame">
-              <div className="hf-corner hf-tl" />
-              <div className="hf-corner hf-tr" />
-              <div className="hf-corner hf-bl" />
-              <div className="hf-corner hf-br" />
-              <div className="hf-scan" />
-              <img src={UIFace} alt="AI face mesh" className="hero-face-img" />
-              <div className="hf-label hf-label-tl">MESH · v4.2</div>
-              <div className="hf-label hf-label-tr">GAN · DETECT</div>
-              <div className="hf-label hf-label-bl">LANDMARK · 468PT</div>
-              <div className="hf-label hf-label-br">ACTIVE</div>
-              <div className="hf-glow-bar" />
-            </div>
-          </div>
-        </div>
-
-        <div className="scroll-hint">
-          <div className="sh-text">Scroll</div>
-          <div className="sh-line" />
-        </div>
-      </div>
-
-      {/* MAIN */}
-      <main>
-        <div className="page">
-          <div className="sec-head" style={{ marginBottom: 14 }}>Detection Mode</div>
-          <div className="modes">
-            {[
-              { key: "image", code: "IMG //", name: "Image", desc: "AI-generated and manipulated photograph detection via GAN fingerprinting", flag: "Live" },
-              { key: "video", code: "VID //", name: "Video", desc: "Frame-by-frame temporal coherence analysis for face swap and synthesis", flag: "Live" },
-              { key: "audio", code: "AUD //", name: "Audio", desc: "Cloned voice and synthetic speech identification via spectral forensics", flag: "Beta" },
-              { key: "signature", code: "SIG //", name: "Signature", desc: "Handwritten signature forgery detection using stroke dynamics analysis", flag: "Beta" },
-              { key: "text", code: "TXT //", name: "Text", desc: "AI-generated text detection using contextual embeddings and linguistic analysis", flag: "Live" }
-            ].map(m => (
-              <div key={m.key} className={`mode-tile${mode === m.key ? " active" : ""}`} onClick={() => handleSetMode(m.key)}>
-                <div className={`mode-flag ${m.flag === "Live" ? "flag-live" : "flag-beta"}`}>{m.flag}</div>
-                <div className="mode-code">{m.code}</div>
-                <div className="mode-name">{m.name}</div>
-                <div className="mode-desc">{m.desc}</div>
+            {/* HERO */}
+            <div className="hero bidaya-hero">
+              <div className="hero-badge">Advanced Deepfake Detection</div>
+              <h1 className="hero-title">
+                Nothing is what <br />
+                <em className="hero-italic">it appears.</em>
+              </h1>
+              <p className="hero-desc">
+                We craft strategic detection experiences that help you reveal what is real and what was constructed.
+              </p>
+              <div className="hero-actions">
+                <button className="btn-primary" onClick={() => document.getElementById('services-sec')?.scrollIntoView({ behavior: 'smooth' })}>
+                  Get Started
+                </button>
+                <button className="btn-icon" onClick={() => document.getElementById('services-sec')?.scrollIntoView({ behavior: 'smooth' })}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
               </div>
-            ))}
+            </div>
+
+            {/* ABOUT */}
+            <section id="about-section" className="about-section" ref={aboutRef}>
+              <div className="about-container">
+                <div className="about-text">
+                  <div className="about-line">
+                    {aboutText.split(" ").map((word, i) => (
+                      <span key={i} className="about-word" style={{ "--d": `${i * 0.06}s` }}>
+                        {word}&nbsp;
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="about-cta"
+                  onClick={() => document.getElementById("services-sec")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  GET STARTED →
+                </button>
+              </div>
+            </section>
+
           </div>
 
-          <div className="workspace">
-            {/* DROP ZONE */}
-            <div className="drop-zone" onDragOver={onDragOver} onDrop={onDrop} onClick={() => fileRef.current?.click()}>
-              <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
+          {/* CAROUSEL */}
+          <section className="carousel-section">
+            <WheelCarousel />
+          </section>
+
+          {/* DETECTION SERVICES */}
+          <section id="services-sec" className="services-section">
+            <h2 className="services-heading">Detection Modules</h2>
+            <div className="services-list">
+              {DETECTION_SERVICES.map((svc, i) => (
+                <ServiceRow key={svc.key} service={svc} index={i} />
+              ))}
+            </div>
+            <AllWorksButton />
+            <p className="services-desc">
+              Miraje provides forensic-grade analysis across five media types. Select a module above to open its detection workspace and submit media for analysis.
+            </p>
+          </section>
+        </>
+      )}
+
+      {/* ── WORKSPACE (?mode=X only) ── */}
+      {initialMode && (
+        <main id="workspace-sec">
+          <div className="ws-page">
+
+            {/* ── HERO ROW ── */}
+            <div className="ws-hero">
+              <h1 className="ws-hero-title">
+                {DETECTION_SERVICES.find(s => s.key === mode)?.name}
+              </h1>
+              <div className="ws-meta-row">
+                <div className="ws-meta-item">
+                  <div className="ws-meta-label">Module</div>
+                  <div className="ws-meta-value">{mode.charAt(0).toUpperCase() + mode.slice(1)}</div>
+                </div>
+                <span className="ws-meta-sep">/</span>
+                <div className="ws-meta-item">
+                  <div className="ws-meta-label">Formats</div>
+                  <div className="ws-meta-value">{cfg.fmts.slice(0, 3).join(', ')}</div>
+                </div>
+                <span className="ws-meta-sep">/</span>
+                <div className="ws-meta-item">
+                  <div className="ws-meta-label">Verdict</div>
+                  <div className="ws-meta-value" style={{ color: verdict.color || 'rgba(250,250,250,0.5)' }}>
+                    {verdict.word}
+                  </div>
+                </div>
+              </div>
+              <p className="ws-hero-desc">
+                {DETECTION_SERVICES.find(s => s.key === mode)?.sub.split('·').map((s, i) => (
+                  <span key={i}>{s.trim()}{i === 0 ? ' — ' : ''}</span>
+                ))}
+                Submit your file below to begin forensic analysis.
+              </p>
+            </div>
+
+            {/* ── BIG MEDIA ZONE ── */}
+            <div
+              className="ws-media-zone"
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onClick={() => mode !== 'text' && fileRef.current?.click()}
+            >
               {scanning && <div className="scan-beam" />}
-              {previewSrc
-                ? <img className="preview-img" src={previewSrc} alt="preview" />
-                : audioSrc
-                  ? <div className="drop-inner">
-                    <div className="drop-title">{fileName}</div>
-                    <div className="drop-sub">{fileSize} MB — ready</div>
-                    <audio controls src={audioSrc} style={{ width: "100%", marginTop: 16, accentColor: "var(--gold)", filter: "invert(1) hue-rotate(180deg)" }} />
+              <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
+
+              {previewSrc && mode === 'image' && (
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <img className="ws-media-img" src={previewSrc} alt="preview" />
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
+              )}
+
+              {previewSrc && mode === 'video' && (
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <video className="ws-media-img" src={previewSrc} muted playsInline preload="metadata"
+                    style={{ objectFit: 'cover' }} />
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
+              )}
+              {/* ADD THIS BLOCK HERE */}
+              {previewSrc && mode === 'signature' && (
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <img className="ws-media-img" src={previewSrc} alt="preview" />
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
+              )}
+
+              {!previewSrc && audioSrc === null && file && mode === 'video' && (
+                <video className="ws-media-img"
+                  src={URL.createObjectURL(file)} muted playsInline preload="metadata"
+                  style={{ objectFit: 'cover' }} />
+              )}
+
+              {audioSrc && (
+                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="ws-audio-inner">
+                    <div className="ws-audio-icon">♪</div>
+                    <div className="ws-audio-name">{fileName}</div>
+                    <div className="ws-audio-size">{fileSize} MB</div>
+                    <audio controls src={audioSrc} className="ws-audio-player" />
                   </div>
-                  : mode === "text"
-                    ? <div
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        position: "absolute", inset: 0,
-                        display: "flex", flexDirection: "column",
-                        padding: 20, boxSizing: "border-box"
-                      }}
-                    >
-                      <textarea
-                        placeholder="Paste text here or upload a .txt file..."
-                        value={textInput}
-                        onChange={e => {
-                          setTextInput(e.target.value);
-                          if (e.target.value) {
-                            setFileLoaded(true);
-                            setFileName("Pasted Text");
-                            setFileSize((e.target.value.length / 1024).toFixed(2));
-                          } else {
-                            setFileLoaded(false);
-                          }
-                        }}
-                        style={{
-                          width: "100%", flexGrow: 1,
-                          background: "rgba(0,0,0,0.25)",
-                          border: "1px solid rgba(232,192,64,0.18)",
-                          color: "#d8dde8",
-                          padding: 18, fontFamily: "'Inter', sans-serif", fontSize: 14,
-                          lineHeight: 1.7,
-                          resize: "none", borderRadius: 8, outline: "none",
-                          boxSizing: "border-box"
-                        }}
-                      />
-                      {textInput.length === 0 && (
-                        <button
-                          className="drop-cta"
-                          style={{ marginTop: 14, alignSelf: "center" }}
-                          onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}
-                        >
-                          <span>Browse Text File</span>
-                        </button>
-                      )}
-                    </div>
-                    : <div className="drop-inner">
-                      <div className="drop-mirage">
-                        {[{ d: "0s", op: .75 }, { d: ".4s", op: .46 }, { d: ".8s", op: .28 }, { d: "1.2s", op: .15 }, { d: "1.6s", op: .07 }].map((l, i) => (
-                          <div key={i} className="dm-line" style={{ "--delay": l.d, opacity: l.op, top: i * 8 + "px" }} />
-                        ))}
-                      </div>
-                      <div className="drop-title">{fileName || "Submit for analysis"}</div>
-                      <div className="drop-sub">{fileSize ? `${fileSize} MB — ready` : "Drag & drop your file here,\nor select from your device."}</div>
-                      <div className="drop-fmts">{cfg.fmts.map(f => <span key={f} className="dfmt">{f}</span>)}</div>
-                      <button className="drop-cta" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}><span>Browse Files</span></button>
-                    </div>
-              }
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
+              )}
+
+              {mode === 'text' && (
+                <div className="ws-text-inner" onClick={e => e.stopPropagation()}>
+                  <textarea
+                    className="ws-textarea"
+                    placeholder="Paste your text here, or drop a .txt / .docx file onto this area…"
+                    value={textInput}
+                    onChange={e => {
+                      setTextInput(e.target.value);
+                      setFileLoaded(e.target.value.length > 0);
+                      setFileName('Pasted Text');
+                      setFileSize((e.target.value.length / 1024).toFixed(2));
+                    }}
+                  />
+                  {textInput.length === 0 && (
+                    <button className="ws-browse-btn"
+                      onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}>
+                      Browse File
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!previewSrc && !audioSrc && mode !== 'text' && (
+                <div className="ws-empty">
+                  <div className="ws-empty-glyph">{getModeGlyph(mode)}</div>
+                  <div className="ws-empty-title">Drop to analyse</div>
+                  <div className="ws-empty-sub">Drag & drop or click to browse</div>
+                  <div className="ws-empty-fmts">
+                    {cfg.fmts.map(f => <span key={f} className="dfmt">{f}</span>)}
+                  </div>
+                  <button className="drop-cta" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}>
+                    Browse Files
+                  </button>
+                </div>
+              )}
+              <StampOverlay verdict={verdict} mode={mode} />
             </div>
-            <input type="file" ref={fileRef} onChange={onFilePick} />
+            <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: 'none' }} />
 
-            {/* SIDEBAR */}
-            <div className="sidebar">
-              <div className="panel">
-                <div className="panel-head">
-                  <div className="panel-label">Verdict</div>
-                  <div className="panel-status">
-                    <div className="pulse-dot" style={{ width: 4, height: 4 }} />
-                    <span>{analysing ? "Processing" : "Idle"}</span>
-                  </div>
-                </div>
-                <div className="verdict-body">
-                  <VerdictRing score={verdict.score} color={verdict.color} glow={verdict.glow} />
-                  <div className="verdict-word" style={{ color: verdict.color || "var(--sand-light)" }}>{verdict.word}</div>
-                  <div className="verdict-note">{verdict.note}</div>
-                </div>
-              </div>
-
-              {pipelineVisible && (
-                <div className="panel">
-                  <div className="panel-head"><div className="panel-label">Pipeline</div></div>
-                  <div className="pipe-body">
+            {/* ── ANALYSIS BAR ── */}
+            <div className="ws-action-bar">
+              <div className="ws-action-left">
+                {pipelineVisible && (
+                  <div className="ws-pipeline">
                     {pipelineSteps.map((s, i) => (
-                      <div key={i} className={`pipe-step${s.state === "done" ? " done" : s.state === "running" ? " running" : ""}`}>
-                        <div className={`pipe-mark${s.state === "done" ? " done" : s.state === "running" ? " active" : ""}`}>
-                          {s.state === "done" ? "✓" : `0${i + 1}`}
-                        </div>
+                      <div key={i} className={`ws-pipe-step${s.state === 'done' ? ' done' : s.state === 'running' ? ' running' : ''}`}>
+                        <span className="ws-pipe-dot" />
                         <span>{s.label}</span>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-
-
-              <button className="run-btn" disabled={!fileLoaded || analysing} onClick={runAnalysis}>
-                <span>{!fileLoaded ? "No File Selected" : analysing ? "Analysing…" : "Initiate Analysis"}</span>
+                )}
+                {verdict.score != null && (
+                  <div className="ws-verdict-inline">
+                    <div className="ws-verdict-pill" style={{ borderColor: verdict.color }}>
+                      <span className="ws-verdict-dot" style={{ background: verdict.color }} />
+                      <span className="ws-verdict-word" style={{ color: verdict.color }}>{verdict.word}</span>
+                      <span className="ws-verdict-divider" />
+                      <span className="ws-verdict-note">{verdict.note}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button className="ws-run-btn" disabled={!canSubmit || analysing} onClick={runAnalysis}>
+                {!canSubmit ? (mode === 'text' ? 'Enter text first' : 'No file selected')
+                  : analysing ? 'Analysing…'
+                    : 'Initiate Analysis →'}
               </button>
             </div>
-          </div>
 
-          {/* RESULTS */}
-          {results.length > 0 && mode !== "text" && (
-            <div style={{ marginBottom: 48 }}>
-              <div className="sec-head" style={{ marginBottom: 18 }}>Subsystem Results</div>
-              <div className="results-grid">
-                {results.map((r, i) => <ResultCard key={i} {...r} mode={mode} visible={visibleScores.includes(i)} />)}
+            {/* ── TEXT XAI PANEL ── */}
+            {mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
+              <div className="ws-results-section">
+                <div className="sec-head">Explainability Report</div>
+                <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
               </div>
-            </div>
-          )}
+            )}
 
-          {/* XAI PANEL — text mode only */}
-          {mode === "text" && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
-            <div style={{ marginBottom: 48 }}>
-              <div className="sec-head" style={{ marginBottom: 18 }}>Explainability Report</div>
-              <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
-            </div>
-          )}
-
-          {/* HISTORY TABLE */}
-          <div style={{ animation: "fadeUp .7s cubic-bezier(.22,1,.36,1) .4s both" }}>
-            <div className="sec-head" style={{ marginBottom: 18 }}>Recent Cases</div>
-            <div className="table-wrap">
-              <div className="t-head">
-                <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
-              </div>
-              {history.length === 0
-                ? <div style={{ padding: "22px 26px", color: "var(--fog)", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: 2, textAlign: "center", textTransform: "uppercase" }}>
-                  No cases analysed yet
+            {/* ── IMAGE GRADCAM PANEL ── */}
+            {/* ── IMAGE GRADCAM PANEL ── */}
+            {(mode === 'image' || mode === 'signature') && gradcam && (
+              <div className="ws-results-section">
+                <div className="sec-head">
+                  {mode === 'signature' ? 'GradCAM — Stroke Attention Map' : 'GradCAM — Forensic Attention Map'}
                 </div>
-                : history.map((r, i) => (
+                <div style={{
+                  display: "flex",
+                  gap: 24,
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                }}>
+                  {/* Heatmap image */}
+                  <div style={{ flex: "1 1 280px" }}>
+                    <img
+                      src={`data:image/png;base64,${gradcam}`}
+                      alt="GradCAM heatmap"
+                      style={{
+                        width: "100%",
+                        borderRadius: 8,
+                        border: "1px solid rgba(250,250,250,0.08)",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+
+                  {/* Legend + explanation */}
+                  <div style={{
+                    flex: "1 1 220px",
+                    fontFamily: "'Inter', monospace",
+                    fontSize: 12,
+                    color: "var(--fog)",
+                    lineHeight: 1.75,
+                    paddingTop: 4,
+                  }}>
+                    <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 8, fontSize: 13 }}>
+                      How to read this
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ color: "#ef4444" }}>■</span>{" "}
+                      <strong style={{ color: "var(--cream-30)" }}>Red / Orange</strong>
+                      {" "}— regions that most strongly influenced the synthetic detection
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ color: "#3b82f6" }}>■</span>{" "}
+                      <strong style={{ color: "var(--cream-30)" }}>Blue / Green</strong>
+                      {" "}— regions with low forensic significance
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ color: "var(--fog)" }}>◈</span>{" "}
+                      {mode === 'signature'
+                        ? 'Focus areas typically correspond to stroke transitions, pen-lift points, and irregular letter formations in forged signatures.'
+                        : 'Focus areas typically correspond to facial boundaries, eye regions, and skin texture anomalies in deepfake images.'}
+                    </div>
+                    <div style={{ marginTop: 12, opacity: 0.5, fontSize: 11 }}>
+                      Generated via Gradient-weighted Class Activation Mapping (Grad-CAM) on the final convolutional layer of the {mode === 'signature' ? 'MobileNetV2-based signature encoder' : 'hybrid ViT–CNN encoder'}.
+                    </div>
+                  </div>
+
+                  {/* ── Gemini AI Forensic Explanation ── */}
+                  {geminiExplanation && (
+                    <div style={{
+                      flex: "1 1 100%",          // full width, pushes onto its own row
+                      marginTop: 8,
+                      padding: "18px 20px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(250,250,250,0.08)",
+                      background: "rgba(250,250,250,0.03)",
+                      fontFamily: "'Be Vietnam Pro', sans-serif",
+                      fontSize: 13,
+                      color: "var(--fog)",
+                      lineHeight: 1.8,
+                      whiteSpace: "pre-wrap",
+                    }}>
+                      <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 10, fontSize: 13, letterSpacing: "0.04em" }}>
+                        ◈ &nbsp;AI Forensic Analyst
+                      </div>
+                      {geminiExplanation}
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
+
+            {/* ── HISTORY TABLE ── */}
+            <div className="ws-results-section">
+              <div className="sec-head">Recent Cases</div>
+              <div className="table-wrap">
+                <div className="t-head">
+                  <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
+                </div>
+                {history.length === 0 ? (
+                  <div style={{ padding: '28px 24px', color: 'var(--ghost)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' }}>
+                    No cases analysed yet
+                  </div>
+                ) : history.map((r, i) => (
                   <div key={i} className="t-row">
                     <div className="t-file">
                       <div className="t-glyph">{r.glyph}</div>
-                      <div><div className="t-fname">{r.name}</div><div className="t-fsize">{r.size}</div></div>
+                      <div>
+                        <div className="t-fname">{r.name}</div>
+                        <div className="t-fsize">{r.size}</div>
+                      </div>
                     </div>
                     <div className="t-type">{r.type}</div>
                     <div><span className={`rc-verdict ${r.cls}`}>{r.lbl}</span></div>
                     <div className="t-conf" style={{ color: r.confClr }}>{r.conf}</div>
                     <div className="t-date">{r.date}</div>
                   </div>
-                ))
-              }
+                ))}
+              </div>
             </div>
+
           </div>
+        </main>
+      )}
 
-
-        </div>
-      </main>
+      {/* ── FOOTER ── */}
+      <Footer />
     </>
   );
 }

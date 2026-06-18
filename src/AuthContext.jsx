@@ -22,11 +22,18 @@ export function AuthProvider({ children }) {
     return unsub;
   }, []);
 
-  const signup          = (email, password) =>
-    createUserWithEmailAndPassword(auth, email, password);
+  const signup = async (email, password, username) => {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(result.user, { displayName: username });
+  return result;
+};
 
-  const login           = (email, password) =>
-    signInWithEmailAndPassword(auth, email, password);
+
+  const login = async (email, password) => {
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  await result.user.reload();
+  return result;
+};
 
   const loginWithGoogle = () =>
     signInWithPopup(auth, googleProvider);
