@@ -145,7 +145,7 @@ export default function WorksPage() {
                 color: "rgba(43,49,51,0.5)", letterSpacing: 1,
                 maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
-                {currentUser.email}
+                {currentUser.displayName ?? currentUser.email.split("@")[0]}
               </span>
               <button
                 onClick={logout}

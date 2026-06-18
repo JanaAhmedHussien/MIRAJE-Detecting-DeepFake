@@ -225,11 +225,92 @@ function ServiceRow({ service, index }) {
   );
 }
 
-/* ── FOOTER ── */
+/* ── FOOTER  ── */
+const CAROUSEL_IMAGES = [
+  "https://framerusercontent.com/images/fr3tcuvrhcc92fVb42dWaZgMiY0.png",
+  "https://framerusercontent.com/images/s1S9fPZ18MTx8XwZarkezh4Bk.png",
+  "https://framerusercontent.com/images/v60krc4Q1kxdiaOdGzy14IKqJw.png",
+  "https://framerusercontent.com/images/TWOqDfYTYLpmjpIpzH23KjDxJmA.png",
+  "https://framerusercontent.com/images/VhISKNWI9OBLHkvGRYnKNtRakM.png",
+  "https://framerusercontent.com/images/EKOgTR9G2g6XvBP7MM3OTP1Ubo.png",
+  "https://framerusercontent.com/images/qvHVjBQ3YMUybtpO7OOKQOKHNA.png",
+  "https://framerusercontent.com/images/TB7DyRCNPXNMXOqT2fzIVSHG62Q.png",
+];
+
+const HEIGHTS = [300, 200, 320, 190, 280, 210, 300, 180, 290, 205];
+
+const ITEMS = [...CAROUSEL_IMAGES, ...CAROUSEL_IMAGES];
+
+
+
+function FooterCarousel() {
+  const trackRef = useRef(null);
+  const rafRef = useRef(null);
+  const posRef = useRef(0);
+  const pauseRef = useRef(false);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const tick = () => {
+      if (!pauseRef.current) {
+        posRef.current += 0.9;
+        const half = track.scrollWidth / 2;
+        if (posRef.current >= half) posRef.current -= half;
+        track.style.transform = `translateX(-${posRef.current}px)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  return (
+    <div
+      className="fc-viewport"
+      onMouseEnter={() => { pauseRef.current = true; }}
+      onMouseLeave={() => { pauseRef.current = false; }}
+    >
+      <div className="fc-track" ref={trackRef}>
+        {ITEMS.map((src, i) => {
+          const h = HEIGHTS[i % HEIGHTS.length];
+          return (
+            <div
+              key={i}
+              className="fc-item"
+              style={{ height: h }}
+            >
+              <img src={src} alt="" loading="lazy" draggable={false} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Footer() {
   return (
     <footer className="site-footer">
+
+      <div className="footer-cta-strip">
+        <p className="footer-cta-text">
+          Let Miraje reveal<br />
+          <em>what's really there.</em>
+        </p>
+        <a href="mailto:hello@miraje.ai" className="footer-cta-link">
+          GET IN TOUCH&nbsp;↗
+        </a>
+      </div>
+
+      <FooterCarousel />
+
+      <div className="footer-rule" />
+
       <div className="footer-top">
+
         <div className="footer-col">
           <div className="footer-col-label">Navigate</div>
           <a href="/#about-section" className="footer-link">About</a>
@@ -238,6 +319,7 @@ function Footer() {
           <a href="/?mode=video" className="footer-link">Video Analysis</a>
           <a href="/?mode=text" className="footer-link">Text Analysis</a>
         </div>
+
         <div className="footer-col">
           <div className="footer-col-label">Modules</div>
           <a href="/?mode=image" className="footer-link">Visual Forgery</a>
@@ -246,23 +328,31 @@ function Footer() {
           <a href="/?mode=signature" className="footer-link">Signature Forensics</a>
           <a href="/?mode=text" className="footer-link">AI Text Detection</a>
         </div>
+
         <div className="footer-col">
           <div className="footer-col-label">Contact</div>
           <a href="mailto:hello@miraje.ai" className="footer-link">hello@miraje.ai</a>
           <span className="footer-link">+1 812 3456 7890</span>
           <span className="footer-link">Cairo, Egypt</span>
         </div>
+
         <div className="footer-col">
           <div className="footer-col-label">Newsletter</div>
           <p className="footer-newsletter-desc">
             Get forensic insights, detection updates, and research delivered to your inbox.
           </p>
           <div className="footer-newsletter-form">
-            <input type="email" placeholder="your@email.com" className="footer-newsletter-input" />
-            <button className="footer-newsletter-btn">→</button>
+            <input
+              type="email"
+              placeholder="Fill your email address"
+              className="footer-newsletter-input"
+            />
+            <button className="footer-newsletter-btn" aria-label="Subscribe">↗</button>
           </div>
         </div>
+
       </div>
+
       <div className="footer-bottom">
         <span>© 2025 Miraje — All rights reserved</span>
         <span className="footer-bottom-brand">
@@ -270,10 +360,71 @@ function Footer() {
             strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
-          Miraje
+          <em>Miraje</em>
         </span>
       </div>
+
     </footer>
+  );
+}
+
+
+function StampOverlay({ verdict, mode }) {
+  if (!verdict || verdict.score == null) return null;
+
+  const isFake = verdict.score > 68;
+  const isUnc = verdict.score >= 45 && verdict.score <= 68;
+
+  const color = isFake ? "#ef4444" : isUnc ? "#facc15" : "#4ade80";
+  const topText = isFake ? "SYNTHETIC MEDIA" : isUnc ? "UNVERIFIED MEDIA" : "VERIFIED MEDIA";
+  const mainText = isFake
+    ? (mode === "signature" ? "FORGED" : "FAKE")
+    : isUnc ? "INCONCLUSIVE" : "AUTHENTIC";
+  const slash = isFake;
+
+  const dots = Array.from({ length: 34 }, (_, i) => {
+    const angle = (i / 34) * 2 * Math.PI - Math.PI / 2;
+    return { cx: 80 + 73 * Math.cos(angle), cy: 80 + 73 * Math.sin(angle) };
+  });
+
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: 28,
+      right: 36,
+      pointerEvents: "none",
+      zIndex: 10,
+      animation: "stampIn 0.45s cubic-bezier(.17,.67,.35,1.3) forwards",
+    }}>
+      <svg width="170" height="170" viewBox="0 0 160 160">
+        <defs>
+          <style>{`@keyframes stampIn { from { transform: scale(2.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+        </defs>
+        <g opacity="0.93">
+          <circle cx="80" cy="80" r="72" fill="none" stroke={color} strokeWidth="3.5" />
+          <circle cx="80" cy="80" r="64" fill="none" stroke={color} strokeWidth="1.2" />
+          {dots.map((d, i) => <circle key={i} cx={d.cx} cy={d.cy} r="2.2" fill={color} />)}
+          {slash && (
+            <line x1="24" y1="56" x2="136" y2="104" stroke={color} strokeWidth="4.5" strokeLinecap="round" opacity="0.65" />
+          )}
+          <path id={`arc-top-${mode}`} d="M 26,80 A 54,54 0 0 1 134,80" fill="none" />
+          <text fontFamily="Inter,sans-serif" fontSize="11" fontWeight="600" fill={color} letterSpacing="3">
+            <textPath href={`#arc-top-${mode}`} startOffset="50%" textAnchor="middle">{topText}</textPath>
+          </text>
+          <text x="80" y="78" textAnchor="middle" fontFamily="Inter,sans-serif"
+            fontSize={mainText.length > 9 ? "13" : "20"} fontWeight="700" fill={color} letterSpacing="1.5">
+            {mainText}
+          </text>
+          {["46", "56", "66"].map((x, i) => (
+            <text key={i} x={[50, 80, 110][i]} y="94" textAnchor="middle" fontFamily="sans-serif" fontSize="9" fill={color}>★</text>
+          ))}
+          <path id={`arc-bot-${mode}`} d="M 26,80 A 54,54 0 0 0 134,80" fill="none" />
+          <text fontFamily="Inter,sans-serif" fontSize="10" fontWeight="500" fill={color} letterSpacing="2.5" opacity="0.85">
+            <textPath href={`#arc-bot-${mode}`} startOffset="50%" textAnchor="middle">MIRAJE · AI FORENSICS</textPath>
+          </text>
+        </g>
+      </svg>
+    </div>
   );
 }
 
@@ -286,6 +437,7 @@ export default function App() {
   if (pathname === "/works") {
     return <WorksPage />;
   }
+
   const [initialMode] = useState(() => new URLSearchParams(window.location.search).get('mode'));
   const [mode, setModeKey] = useState(initialMode || "image");
   const [fileLoaded, setFileLoaded] = useState(false);
@@ -305,16 +457,21 @@ export default function App() {
   const [textInput, setTextInput] = useState("");
   const [history, setHistory] = useState([]);
   const [xaiData, setXaiData] = useState({ tokenImportance: [], sentenceScores: [] });
+  const [gradcam, setGradcam] = useState(null);   // ← GradCAM heatmap (base64 PNG)
+  const [geminiExplanation, setGeminiExplanation] = useState(null);
 
   const fileRef = useRef(null);
   const cfg = CFG[mode];
   const aboutRef = useRef(null);
 
+  // Reset all result state when mode changes
   useEffect(() => {
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
     setResults([]);
     setPipelineVisible(false);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
+    setGradcam(null);   // ← reset GradCAM on mode switch
+    setGeminiExplanation(null);
   }, [mode]);
 
   /* About word-reveal animation — only fires scrolling down */
@@ -351,6 +508,8 @@ export default function App() {
     setVerdict({ score: null, color: null, glow: null, word: "Awaiting Input", note: "Submit a file to begin" });
     setResults([]);
     setPipelineVisible(false);
+    setGradcam(null);   // ← reset GradCAM on new file
+    setGeminiExplanation(null);
 
     if (f.type.startsWith("image/")) {
       const r = new FileReader();
@@ -386,6 +545,8 @@ export default function App() {
     setAnalysing(true);
     setPipelineVisible(true);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
+    setGradcam(null);   // ← clear stale heatmap before new run
+    setGeminiExplanation(null);
 
     const steps = cfg.steps.map(s => ({ label: s, state: "pending" }));
     setPipelineSteps(steps);
@@ -401,9 +562,25 @@ export default function App() {
 
       if (mode === "image") {
         formData.append("image", file);
-        const res = await fetch("http://localhost:5000/predict-image", { method: "POST", body: formData });
+        const res = await fetch("http://localhost:5000/predict-image-v2", { method: "POST", body: formData });
         const d = await res.json();
-        score = d.fake_probability; prediction = d.prediction;
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null)
+        if (d.gradcam) {
+          const explainRes = await fetch("http://localhost:5000/explain-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          setGeminiExplanation(explainData.explanation || null);
+        };   // ← store GradCAM heatmap
       } else if (mode === "audio") {
         formData.append("audio", file);
         const res = await fetch("http://localhost:5000/predict-audio", { method: "POST", body: formData });
@@ -413,7 +590,23 @@ export default function App() {
         formData.append("signature", file);
         const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
         const d = await res.json();
-        score = d.score ?? d.fake_probability; prediction = d.prediction;
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null);
+        if (d.gradcam) {
+          const explainRes = await fetch("http://localhost:5000/explain-signature", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          setGeminiExplanation(explainData.explanation || null);
+        }
       } else if (mode === "video") {
         formData.append("video", file);
         const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
@@ -589,7 +782,6 @@ export default function App() {
             </div>
             <AllWorksButton />
             <p className="services-desc">
-
               Miraje provides forensic-grade analysis across five media types. Select a module above to open its detection workspace and submit media for analysis.
             </p>
           </section>
@@ -601,16 +793,11 @@ export default function App() {
         <main id="workspace-sec">
           <div className="ws-page">
 
-            {/* ── HERO ROW (Everline-style) ── */}
+            {/* ── HERO ROW ── */}
             <div className="ws-hero">
-              <a href="/" className="mc-back-btn" style={{ marginBottom: 32, display: 'inline-flex' }}>← Back</a>
-
-              {/* Service title — like "Everline" */}
               <h1 className="ws-hero-title">
                 {DETECTION_SERVICES.find(s => s.key === mode)?.name}
               </h1>
-
-              {/* Meta row — like Category / Year / Duration */}
               <div className="ws-meta-row">
                 <div className="ws-meta-item">
                   <div className="ws-meta-label">Module</div>
@@ -622,7 +809,6 @@ export default function App() {
                   <div className="ws-meta-value">{cfg.fmts.slice(0, 3).join(', ')}</div>
                 </div>
                 <span className="ws-meta-sep">/</span>
-                {/* Verdict inline */}
                 <div className="ws-meta-item">
                   <div className="ws-meta-label">Verdict</div>
                   <div className="ws-meta-value" style={{ color: verdict.color || 'rgba(250,250,250,0.5)' }}>
@@ -630,8 +816,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-              {/* Description / sub — right side like Bidaya */}
               <p className="ws-hero-desc">
                 {DETECTION_SERVICES.find(s => s.key === mode)?.sub.split('·').map((s, i) => (
                   <span key={i}>{s.trim()}{i === 0 ? ' — ' : ''}</span>
@@ -640,7 +824,7 @@ export default function App() {
               </p>
             </div>
 
-            {/* ── BIG MEDIA ZONE (like the big Everline image) ── */}
+            {/* ── BIG MEDIA ZONE ── */}
             <div
               className="ws-media-zone"
               onDragOver={onDragOver}
@@ -650,34 +834,46 @@ export default function App() {
               {scanning && <div className="scan-beam" />}
               <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
 
-              {/* IMAGE: show uploaded image */}
               {previewSrc && mode === 'image' && (
-                <img className="ws-media-img" src={previewSrc} alt="preview" />
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <img className="ws-media-img" src={previewSrc} alt="preview" />
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
               )}
 
-              {/* VIDEO: show first frame (poster) via video element */}
               {previewSrc && mode === 'video' && (
-                <video className="ws-media-img" src={previewSrc} muted playsInline preload="metadata"
-                  style={{ objectFit: 'cover' }} />
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <video className="ws-media-img" src={previewSrc} muted playsInline preload="metadata"
+                    style={{ objectFit: 'cover' }} />
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
               )}
-              {/* fallback for video from file object */}
+              {/* ADD THIS BLOCK HERE */}
+              {previewSrc && mode === 'signature' && (
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <img className="ws-media-img" src={previewSrc} alt="preview" />
+                  <StampOverlay verdict={verdict} mode={mode} />
+                </div>
+              )}
+
               {!previewSrc && audioSrc === null && file && mode === 'video' && (
                 <video className="ws-media-img"
                   src={URL.createObjectURL(file)} muted playsInline preload="metadata"
                   style={{ objectFit: 'cover' }} />
               )}
 
-              {/* AUDIO: waveform-style player */}
               {audioSrc && (
-                <div className="ws-audio-inner">
-                  <div className="ws-audio-icon">♪</div>
-                  <div className="ws-audio-name">{fileName}</div>
-                  <div className="ws-audio-size">{fileSize} MB</div>
-                  <audio controls src={audioSrc} className="ws-audio-player" />
+                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="ws-audio-inner">
+                    <div className="ws-audio-icon">♪</div>
+                    <div className="ws-audio-name">{fileName}</div>
+                    <div className="ws-audio-size">{fileSize} MB</div>
+                    <audio controls src={audioSrc} className="ws-audio-player" />
+                  </div>
+                  <StampOverlay verdict={verdict} mode={mode} />
                 </div>
               )}
 
-              {/* TEXT: large textarea */}
               {mode === 'text' && (
                 <div className="ws-text-inner" onClick={e => e.stopPropagation()}>
                   <textarea
@@ -700,7 +896,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* EMPTY STATE */}
               {!previewSrc && !audioSrc && mode !== 'text' && (
                 <div className="ws-empty">
                   <div className="ws-empty-glyph">{getModeGlyph(mode)}</div>
@@ -714,6 +909,7 @@ export default function App() {
                   </button>
                 </div>
               )}
+              <StampOverlay verdict={verdict} mode={mode} />
             </div>
             <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: 'none' }} />
 
@@ -732,10 +928,11 @@ export default function App() {
                 )}
                 {verdict.score != null && (
                   <div className="ws-verdict-inline">
-                    <VerdictRing score={verdict.score} color={verdict.color} glow={verdict.glow} />
-                    <div>
-                      <div className="ws-verdict-word" style={{ color: verdict.color }}>{verdict.word}</div>
-                      <div className="ws-verdict-note">{verdict.note}</div>
+                    <div className="ws-verdict-pill" style={{ borderColor: verdict.color }}>
+                      <span className="ws-verdict-dot" style={{ background: verdict.color }} />
+                      <span className="ws-verdict-word" style={{ color: verdict.color }}>{verdict.word}</span>
+                      <span className="ws-verdict-divider" />
+                      <span className="ws-verdict-note">{verdict.note}</span>
                     </div>
                   </div>
                 )}
@@ -747,21 +944,97 @@ export default function App() {
               </button>
             </div>
 
-            {/* ── SUBSYSTEM RESULTS ── */}
-            {results.length > 0 && mode !== 'text' && (
-              <div className="ws-results-section">
-                <div className="sec-head">Subsystem Results</div>
-                <div className="results-grid">
-                  {results.map((r, i) => <ResultCard key={i} {...r} mode={mode} visible={visibleScores.includes(i)} />)}
-                </div>
-              </div>
-            )}
-
-            {/* ── XAI PANEL ── */}
+            {/* ── TEXT XAI PANEL ── */}
             {mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
               <div className="ws-results-section">
                 <div className="sec-head">Explainability Report</div>
                 <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
+              </div>
+            )}
+
+            {/* ── IMAGE GRADCAM PANEL ── */}
+            {/* ── IMAGE GRADCAM PANEL ── */}
+            {(mode === 'image' || mode === 'signature') && gradcam && (
+              <div className="ws-results-section">
+                <div className="sec-head">
+                  {mode === 'signature' ? 'GradCAM — Stroke Attention Map' : 'GradCAM — Forensic Attention Map'}
+                </div>
+                <div style={{
+                  display: "flex",
+                  gap: 24,
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                }}>
+                  {/* Heatmap image */}
+                  <div style={{ flex: "1 1 280px" }}>
+                    <img
+                      src={`data:image/png;base64,${gradcam}`}
+                      alt="GradCAM heatmap"
+                      style={{
+                        width: "100%",
+                        borderRadius: 8,
+                        border: "1px solid rgba(250,250,250,0.08)",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+
+                  {/* Legend + explanation */}
+                  <div style={{
+                    flex: "1 1 220px",
+                    fontFamily: "'Inter', monospace",
+                    fontSize: 12,
+                    color: "var(--fog)",
+                    lineHeight: 1.75,
+                    paddingTop: 4,
+                  }}>
+                    <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 8, fontSize: 13 }}>
+                      How to read this
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ color: "#ef4444" }}>■</span>{" "}
+                      <strong style={{ color: "var(--cream-30)" }}>Red / Orange</strong>
+                      {" "}— regions that most strongly influenced the synthetic detection
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ color: "#3b82f6" }}>■</span>{" "}
+                      <strong style={{ color: "var(--cream-30)" }}>Blue / Green</strong>
+                      {" "}— regions with low forensic significance
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ color: "var(--fog)" }}>◈</span>{" "}
+                      {mode === 'signature'
+                        ? 'Focus areas typically correspond to stroke transitions, pen-lift points, and irregular letter formations in forged signatures.'
+                        : 'Focus areas typically correspond to facial boundaries, eye regions, and skin texture anomalies in deepfake images.'}
+                    </div>
+                    <div style={{ marginTop: 12, opacity: 0.5, fontSize: 11 }}>
+                      Generated via Gradient-weighted Class Activation Mapping (Grad-CAM) on the final convolutional layer of the {mode === 'signature' ? 'MobileNetV2-based signature encoder' : 'hybrid ViT–CNN encoder'}.
+                    </div>
+                  </div>
+
+                  {/* ── Gemini AI Forensic Explanation ── */}
+                  {geminiExplanation && (
+                    <div style={{
+                      flex: "1 1 100%",          // full width, pushes onto its own row
+                      marginTop: 8,
+                      padding: "18px 20px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(250,250,250,0.08)",
+                      background: "rgba(250,250,250,0.03)",
+                      fontFamily: "'Be Vietnam Pro', sans-serif",
+                      fontSize: 13,
+                      color: "var(--fog)",
+                      lineHeight: 1.8,
+                      whiteSpace: "pre-wrap",
+                    }}>
+                      <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 10, fontSize: 13, letterSpacing: "0.04em" }}>
+                        ◈ &nbsp;AI Forensic Analyst
+                      </div>
+                      {geminiExplanation}
+                    </div>
+                  )}
+
+                </div>
               </div>
             )}
 
@@ -797,6 +1070,7 @@ export default function App() {
           </div>
         </main>
       )}
+
       {/* ── FOOTER ── */}
       <Footer />
     </>

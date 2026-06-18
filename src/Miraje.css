@@ -38,9 +38,8 @@
     --danger2: #ef4444;
     --safe2: #4ade80;
     --warn2: #facc15;
-
-    --page-px: 5vw;
-    --max-w: 1080px;
+    --page-px: 4vw;      
+    --max-w: 1200px;     
     --radius-sm: 8px;
     --radius-md: 16px;
 }
@@ -109,10 +108,13 @@ a {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px var(--page-px) 24px calc(var(--page-px) + 210px);
+    padding: 24px var(--page-px);
+    max-width: calc(var(--max-w) + 10vw);
+    margin: 0 auto;
     position: relative;
     z-index: 100;
 }
+
 
 .brand {
     display: flex;
@@ -476,9 +478,9 @@ a {
 
 /* Hero text block */
 .ws-hero {
-  padding: 48px 0 40px;
-  max-width: 100%;        
-  margin: 0;              
+  padding: 130px var(--page-px) 40px;   /* ← 48px → 100px */
+  max-width: 100%;
+  margin: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto;
@@ -490,24 +492,22 @@ a {
 .ws-hero-title {
   grid-column: 1 / -1; /* title spans full width */
   font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: clamp(40px, 6vw, 80px);
+  font-size: clamp(28px, 4vw, 52px);
   font-weight: 400;
   color: var(--cream);
   letter-spacing: -0.03em;
   line-height: 1.05;
-  margin-bottom: 200px;
-
+  margin-bottom: 48px;
 }
 
 .ws-meta-row {
   grid-column: 1;
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  align-items: center;       
+  gap: 36px;                
   flex-wrap: wrap;
   margin-bottom: 0;
 }
-
 .ws-hero-desc {
   grid-column: 2;
   font-size: 15px;
@@ -518,28 +518,30 @@ a {
 }
 
 .ws-meta-sep {
-    color: rgba(250, 250, 250, 0.2);
-    font-size: 16px;
+    color: rgba(250, 250, 250, 0.25); 
+    font-size: 20px;                  
 }
+
 
 .ws-meta-item {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 8px;               
 }
+
 
 .ws-meta-label {
     font-family: 'Inter', monospace;
-    font-size: 10px;
-    color: rgba(250, 250, 250, 0.35);
+    font-size: 11px;      
+    color: rgba(250, 250, 250, 0.4);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;  
 }
 
 .ws-meta-value {
     font-family: 'Be Vietnam Pro', sans-serif;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 17px;        
+    font-weight: 600;       
     color: var(--cream);
     letter-spacing: -0.01em;
 }
@@ -548,13 +550,14 @@ a {
 
 /* ── BIG MEDIA ZONE ── */
 .ws-media-zone {
-  width: 100%;
+  width: auto;                  /* was: width: 100% */
+  margin: 0 var(--page-px);     /* was: no margin; remove the padding I gave you earlier */
   height: 560px;
   min-height: unset;
   background: rgba(250,250,250,0.02);
   border-top: 1px solid rgba(250,250,250,0.08);
   border-bottom: 1px solid rgba(250,250,250,0.08);
-  border-left: none;      /* remove any side borders */
+  border-left: none;
   border-right: none;
   position: relative;
   overflow: hidden;
@@ -2025,127 +2028,294 @@ a {
     padding: 100px var(--page-px);
 }
 
-/* ── FOOTER ── */
+/* ═══════════════════════════════════════════════
+   FOOTER — Bidaya-inspired rewrite
+   Replace everything between "── FOOTER ──" and
+   the end of the footer block in Miraje.css with this.
+═══════════════════════════════════════════════ */
+
+
 .site-footer {
-    background: var(--mist);
-    padding: 80px var(--page-px) 40px;
-    border-top: none;
-    margin-top: 80px;
+  background: var(--mist);           /* warm off-white, same as before */
+  padding: 0 var(--page-px);
+  margin-top: 80px;
 }
-
+ 
+/* ── CTA STRIP ── */
+.footer-cta-strip {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 72px 0 64px;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+ 
+.footer-cta-text {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 400;
+  color: var(--plum);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+ 
+.footer-cta-text em {
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  font-weight: 500;
+}
+ 
+.footer-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--plum);
+  text-decoration: none;
+  white-space: nowrap;
+  padding-bottom: 12px;            /* align to baseline of last text line */
+  transition: opacity 0.2s;
+}
+ 
+.footer-cta-link:hover {
+  opacity: 0.55;
+}
+ 
+/* ── RULE ── */
+.footer-rule {
+  height: 1px;
+  background: rgba(43, 49, 51, 0.12);
+  margin-bottom: 56px;
+}
+ 
+/* ── COLUMN GRID ── */
 .footer-top {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1.4fr;
-    gap: 48px;
-    margin-bottom: 64px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.4fr;
+  gap: 48px;
+  padding-bottom: 56px;
 }
-
+ 
 .footer-col {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
+ 
 .footer-col-label {
-    font-size: 10px;
-    font-weight: 500;
-    color: rgba(43, 49, 51, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-family: 'Inter', monospace;
-    margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(43, 49, 51, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: 'Inter', monospace;
+  margin-bottom: 4px;
 }
-
+ 
 .footer-link {
-    font-size: 14px;
-    color: rgba(43, 49, 51, 0.65);
-    text-decoration: none;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    transition: color 0.2s;
-    cursor: pointer;
+  font-size: 14px;
+  color: rgba(43, 49, 51, 0.65);
+  text-decoration: none;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  transition: color 0.2s;
+  cursor: pointer;
 }
-
+ 
 .footer-link:hover {
-    color: var(--plum);
+  color: var(--plum);
 }
-
+ 
+/* ── NEWSLETTER — underline style (Bidaya) ── */
 .footer-newsletter-desc {
-    font-size: 13px;
-    color: rgba(43, 49, 51, 0.45);
-    line-height: 1.65;
-    letter-spacing: -0.01em;
+  font-size: 13px;
+  color: rgba(43, 49, 51, 0.45);
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
 }
-
+ 
 .footer-newsletter-form {
-    display: flex;
-    gap: 0;
-    border: 1px solid rgba(43, 49, 51, 0.15);
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid rgba(43, 49, 51, 0.25);
+  padding-bottom: 10px;
+  /* NO rounded pill, NO background box */
 }
-
+ 
 .footer-newsletter-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    padding: 11px 18px;
-    font-size: 13px;
-    color: var(--plum);
-    font-family: 'Be Vietnam Pro', sans-serif;
-    letter-spacing: -0.01em;
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--plum);
+  font-family: 'Be Vietnam Pro', sans-serif;
+  letter-spacing: -0.01em;
 }
-
+ 
 .footer-newsletter-input::placeholder {
-    color: rgba(43, 49, 51, 0.3);
+  color: rgba(43, 49, 51, 0.3);
 }
-
+ 
 .footer-newsletter-btn {
-    background: var(--plum);
-    color: var(--cream);
-    border: none;
-    padding: 11px 18px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 18px;
+  color: var(--plum);
+  cursor: pointer;
+  line-height: 1;
+  transition: opacity 0.2s, transform 0.2s;
+  flex-shrink: 0;
 }
-
+ 
 .footer-newsletter-btn:hover {
-    opacity: 0.85;
+  opacity: 0.55;
+  transform: translate(2px, -2px);
 }
-
+ 
+/* ── BOTTOM BAR ── */
 .footer-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 28px;
-    border-top: 1px solid rgba(43, 49, 51, 0.1);
-    font-size: 11px;
-    color: rgba(43, 49, 51, 0.35);
-    font-family: 'Inter', monospace;
-    letter-spacing: 0.04em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 0 32px;
+  border-top: 1px solid rgba(43, 49, 51, 0.1);
+  font-size: 11px;
+  color: rgba(43, 49, 51, 0.35);
+  font-family: 'Inter', monospace;
+  letter-spacing: 0.04em;
 }
-
+ 
 .footer-bottom-brand {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-family: 'EB Garamond', serif;
-    font-style: italic;
-    font-size: 15px;
-    color: rgba(43, 49, 51, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(43, 49, 51, 0.45);
+}
+ 
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+ 
+  .footer-col:last-child {
+    grid-column: 1 / -1;
+  }
+ 
+  .footer-cta-text {
+    font-size: clamp(28px, 6vw, 44px);
+  }
+}
+ 
+@media (max-width: 600px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+  }
+ 
+  .footer-cta-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 28px;
+  }
+ 
+  .footer-cta-link {
+    padding-bottom: 0;
+  }
+}
+ 
+/* ── FOOTER CAROUSEL ── */
+.fc-viewport {
+  width: 100%;
+  overflow: hidden;
+  margin: 40px 0 48px;
+  cursor: default;
+  user-select: none;
+}
+ 
+.fc-track {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  will-change: transform;
+}
+ 
+.fc-item {
+  flex-shrink: 0;
+  width: 220px;
+  border-radius: 0;
+  overflow: hidden;
+  background: rgba(43,49,51,0.06);
+}
+ 
+.fc-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+ 
+@media (max-width: 768px) {
+  .fc-item { width: 150px; }
+  .fc-viewport { margin: 28px 0 36px; }
 }
 
-@media (max-width: 768px) {
-    .footer-top {
-        grid-template-columns: 1fr 1fr;
-        gap: 36px;
-    }
+@keyframes stampIn {
+  from { transform: scale(2.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.ws-verdict-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border: 1px solid;
+  border-radius: 999px;
+  background: rgba(250, 250, 250, 0.03);
+  backdrop-filter: blur(4px);
+}
 
-    .footer-col:last-child {
-        grid-column: 1 / -1;
-    }
+.ws-verdict-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+.ws-verdict-word {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.ws-verdict-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(250, 250, 250, 0.15);
+  flex-shrink: 0;
+}
+
+.ws-verdict-note {
+  font-size: 12px;
+  color: var(--ghost);
+  font-family: 'Inter', monospace;
+  letter-spacing: 0.02em;
 }

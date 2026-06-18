@@ -12,6 +12,7 @@ app.add_middleware(
 )
 
 IMAGE_SERVICE     = "http://localhost:5001"
+IMAGE_SERVICE_V2  = "http://localhost:5006"
 AUDIO_SERVICE     = "http://localhost:5002"
 SIGNATURE_SERVICE = "http://localhost:5003"
 TEXT_SERVICE      = "http://localhost:5004"
@@ -27,7 +28,6 @@ def root():
     }
 
 
-
 @app.get("/health")
 async def health():
     status = {"status": "gateway running", "services": {}}
@@ -40,6 +40,12 @@ async def health():
             status["services"]["image"] = "offline"
 
         try:
+            r = await client.get(f"{IMAGE_SERVICE_V2}/health")
+            status["services"]["image_v2"] = r.json().get("status")
+        except:
+            status["services"]["image_v2"] = "offline"
+
+        try:
             r = await client.get(f"{AUDIO_SERVICE}/health")
             status["services"]["audio"] = r.json().get("status")
         except:
@@ -47,7 +53,7 @@ async def health():
 
         try:
             r = await client.get(f"{VIDEO_SERVICE}/health")
-            status["services"]["videi"] = r.json().get("status")
+            status["services"]["video"] = r.json().get("status")
         except:
             status["services"]["video"] = "offline"
 
@@ -56,7 +62,6 @@ async def health():
             status["services"]["signature"] = r.json().get("status")
         except:
             status["services"]["signature"] = "offline"
-
 
         try:
             r = await client.get(f"{TEXT_SERVICE}/health")
@@ -77,6 +82,26 @@ async def predict_image(image: UploadFile = File(...)):
         )
     return response.json()
 
+
+@app.post("/predict-image-v2")
+async def predict_image_v2(image: UploadFile = File(...)):
+    contents = await image.read()
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"{IMAGE_SERVICE_V2}/predict-image",
+            files={"image": (image.filename, contents, image.content_type)}
+        )
+    return response.json()
+
+@app.post("/explain-image")
+async def explain_image(payload: dict):
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                f"{IMAGE_SERVICE_V2}/explain",
+                json=payload,
+            )
+        return response.json()
+    
 
 @app.post("/predict-audio")
 async def predict_audio(audio: UploadFile = File(...)):
@@ -99,11 +124,18 @@ async def predict_signature(signature: UploadFile = File(...)):
         )
     return response.json()
 
-
+@app.post("/explain-signature")
+async def explain_signature(payload: dict):
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"{SIGNATURE_SERVICE}/explain",
+            json=payload,
+        )
+    return response.json()
 @app.post("/predict-video")
 async def predict_video(video: UploadFile = File(...)):
     contents = await video.read()
-    async with httpx.AsyncClient(timeout=120) as client:   # videos need more time
+    async with httpx.AsyncClient(timeout=120) as client:
         response = await client.post(
             f"{VIDEO_SERVICE}/predict-video",
             files={"video": (video.filename, contents, video.content_type)}
@@ -118,5 +150,4 @@ async def predict_text(input: dict):
             f"{TEXT_SERVICE}/predict-text",
             json=input,
         )
-
-        return response.json()
+    return response.json()
