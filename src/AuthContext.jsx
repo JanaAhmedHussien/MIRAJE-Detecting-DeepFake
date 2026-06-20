@@ -5,6 +5,7 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 
@@ -23,22 +24,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signup = async (email, password, username) => {
-  const result = await createUserWithEmailAndPassword(auth, email, password);
-  await updateProfile(result.user, { displayName: username });
-  return result;
-};
-
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(result.user, { displayName: username });
+    return result;
+  };
 
   const login = async (email, password) => {
-  const result = await signInWithEmailAndPassword(auth, email, password);
-  await result.user.reload();
-  return result;
-};
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    await result.user.reload();
+    return result;
+  };
 
-  const loginWithGoogle = () =>
-    signInWithPopup(auth, googleProvider);
+  const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
 
-  const logout          = () => signOut(auth);
+  const logout = () => signOut(auth);
 
   return (
     <AuthContext.Provider value={{ currentUser, signup, login, loginWithGoogle, logout }}>

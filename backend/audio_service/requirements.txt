@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 python-multipart
-pydantic
-torch
-transformers
+tensorflow==2.20.0
+librosa
 numpy

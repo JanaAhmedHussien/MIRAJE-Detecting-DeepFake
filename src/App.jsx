@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import './Miraje.css';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
@@ -14,7 +16,7 @@ import WorksPage from "./WorksPage";
 const CFG = {
   image: {
     fmts: ["JPG", "PNG", "WEBP", "GIF", "BMP", "TIFF"],
-    steps: ["Preprocessing", "Feature Extraction", "GAN Classifier", "Frequency Analysis", "Report Generation"],
+    steps: ["Preprocessing", "Feature Extraction", "Vision Transformer", "CNN Layer", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Face Analysis", desc: "Landmark geometry, eye blink patterns & skin texture synthesis markers" },
       { code: "SYS-02", name: "Frequency Domain", desc: "DCT & Fourier transform artifact detection in latent space" },
@@ -23,7 +25,7 @@ const CFG = {
   },
   video: {
     fmts: ["MP4", "MOV", "AVI", "MKV", "WEBM"],
-    steps: ["Frame Extraction", "Face Tracking", "Temporal Analysis", "Lip-Sync Check", "Report Generation"],
+    steps: ["MTCNN Face detection", "Spatial Temporal Stream", "EfficientNet-B4", "BiLSTM", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Face Swap", desc: "Inter-frame face boundary and blending artifacts across sequence" },
       { code: "SYS-02", name: "Lip Sync", desc: "Audio-visual alignment consistency and phoneme mapping" },
@@ -32,7 +34,7 @@ const CFG = {
   },
   audio: {
     fmts: ["WAV", "MP3", "FLAC", "OGG", "M4A", "AAC"],
-    steps: ["Audio Decoding", "Spectrogram Analysis", "Voice Embedding", "Prosody Check", "Report Generation"],
+    steps: ["Training Discriminator", "Convolutional Layers", "LSTM", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Voice Cloning", desc: "Latent voice embedding similarity and TTS artifact identification" },
       { code: "SYS-02", name: "Spectrogram", desc: "MFCC deviation and spectral synthesis marker detection" },
@@ -41,7 +43,7 @@ const CFG = {
   },
   signature: {
     fmts: ["JPG", "PNG", "PDF", "TIFF", "BMP"],
-    steps: ["Image Preprocessing", "Stroke Segmentation", "Dynamic Analysis", "Template Matching", "Report Generation"],
+    steps: ["Image Preprocessing", "EfficientNet-B0", "channel-wise attention", "Template Matching", "Report Generation"],
     results: [
       { code: "SYS-01", name: "Stroke Dynamics", desc: "Velocity, pressure and pen-lift pattern forensic analysis" },
       { code: "SYS-02", name: "Geometric Match", desc: "Reference template comparison via Dynamic Time Warping" },
@@ -49,8 +51,8 @@ const CFG = {
     ],
   },
   text: {
-    fmts: ["TXT", "DOCX", "PDF"],
-    steps: ["Tokenization", "Contextual Embedding", "Transformer Attention", "Linguistic Scoring", "Report Generation"],
+    fmts: ["TXT"],
+    steps: ["Tokenization", "RoBERTa & Linguistic Hybird", "Classification", "Report Generation"],
     results: [
       { code: "SYS-01", name: "AI Authorship", desc: "Detection of LLM generative patterns and statistical anomalies" },
       { code: "SYS-02", name: "Perplexity", desc: "Analysis of predictability and vocabulary variance" },
@@ -60,11 +62,11 @@ const CFG = {
 };
 
 const DETECTION_SERVICES = [
-  { key: "image", name: "Visual Forgery Detection", sub: "GAN Fingerprinting · Image Analysis", flag: "Live" },
-  { key: "video", name: "Deepfake Video Analysis", sub: "Temporal Coherence · Face-Swap Detection", flag: "Live" },
-  { key: "audio", name: "Synthetic Voice Identification", sub: "Spectral Forensics · Voice Cloning", flag: "Beta" },
-  { key: "signature", name: "Signature Forgery Forensics", sub: "Stroke Dynamics · Handwriting Verification", flag: "Beta" },
-  { key: "text", name: "AI-Authored Text Detection", sub: "Perplexity Analysis · LLM Pattern Recognition", flag: "Live" },
+  { key: "image", name: "Visual Forgery Detection", sub: "Vision Transformer · GAN Fingerprinting", flag: "Live" },
+  { key: "video", name: "Deepfake Video Analysis", sub: "EfficientNet-B4 · BiLSTM Temporal Analysis", flag: "Live" },
+  { key: "audio", name: "Synthetic Voice Identification", sub: "MFCC Spectral Analysis · Voice Cloning Detection", flag: "Beta" },
+  { key: "signature", name: "Signature Forgery Forensics", sub: "EfficientNet-B0 · Template Matching", flag: "Beta" },
+  { key: "text", name: "AI-Authored Text Detection", sub: "RoBERTa · Linguistic Hybrid Analysis", flag: "Live" },
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -130,27 +132,40 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
   const impRange = (impMax - impMin) || 1;
 
   const getStyle = imp => {
-    const n = (imp - impMin) / impRange;
-    if (n < 0.20) return { color: '#7a8098', background: 'transparent' };
-    if (n < 0.40) return { color: '#c8b860', background: 'rgba(232,192,64,0.12)' };
-    if (n < 0.60) return { color: '#e09040', background: 'rgba(220,140,60,0.22)' };
-    if (n < 0.80) return { color: '#e86848', background: 'rgba(220,90,60,0.28)' };
-    return { color: '#ff5858', background: 'rgba(240,60,60,0.34)', fontWeight: 600 };
+    const n = (imp - impMin) / impRange; // 0 = lowest influence, 1 = highest
+    // Color scale: low → green (#4ade80), mid → amber (#fbbf24), high → red (#ef4444)
+    let r, g, b;
+    if (n < 0.5) {
+      // green → amber
+      const t = n / 0.5;
+      r = Math.round(74  + (251 - 74)  * t);
+      g = Math.round(222 + (191 - 222) * t);
+      b = Math.round(128 + (36  - 128) * t);
+    } else {
+      // amber → red
+      const t = (n - 0.5) / 0.5;
+      r = Math.round(251 + (239 - 251) * t);
+      g = Math.round(191 + (68  - 191) * t);
+      b = Math.round(36  + (68  - 36)  * t);
+    }
+    const alpha = 0.12 + n * 0.38; // background opacity: subtle for low, vivid for high
+    return {
+      background: `rgba(${r},${g},${b},${alpha})`,
+      color: n > 0.45 ? `rgb(${r},${g},${b})` : 'rgba(250,250,250,0.55)',
+      borderRadius: 3,
+      padding: '1px 2px',
+      transition: 'background 0.2s',
+    };
   };
 
   return (
     <div className="xai-panel">
       {tokenImportance.length > 0 && (
         <div className="xai-tokens-section">
-          <div className="xai-sec-head">◈ &nbsp;Linguistic Influence Map</div>
-          <div className="xai-legend">
-            {[['#7a8098', 'Neutral'], ['#c8b860', 'Low'], ['#e09040', 'Medium'], ['#e86848', 'High'], ['#ff5858', 'Critical']].map(([c, l]) => (
-              <span key={l} className="xai-leg-item">
-                <span className="xai-leg-dot" style={{ background: c }} />{l}
-              </span>
-            ))}
+          <div className="xai-sec-head">Linguistic Influence Map</div>
+          <div className="xai-note">
+            Darker shading indicates words that more strongly influenced the classification.
           </div>
-          <div className="xai-note">Words highlighted in red/orange most strongly influenced the AI detection decision</div>
           <div className="xai-text-block">
             {tokenImportance.map((t, i) => (
               <span key={i} className="xai-tok" style={getStyle(t.importance)} title={`Influence: ${(t.importance * 100).toFixed(0)}%`}>
@@ -160,24 +175,25 @@ function XAIPanel({ tokenImportance, sentenceScores }) {
           </div>
         </div>
       )}
+
       {sentenceScores.length > 0 && (
         <div className="xai-sentences-section">
-          <div className="xai-sec-head" style={{ marginTop: tokenImportance.length ? 36 : 0 }}>◈ &nbsp;Sentence-Level Breakdown</div>
-          <div className="xai-note">Each sentence scored independently — higher % indicates more AI-like patterns</div>
+          <div className="xai-sec-head" style={{ marginTop: tokenImportance.length ? 36 : 0 }}>Sentence-Level Breakdown</div>
+          <div className="xai-note">Each sentence is scored independently for likelihood of AI generation.</div>
           <div className="xai-sent-list">
             {sentenceScores.map((s, i) => {
-              const clr = s.fake_probability > 68 ? '#e8736b' : s.fake_probability > 45 ? '#d4a855' : '#68d4ae';
               const lbl = s.fake_probability > 68 ? 'AI-like' : s.fake_probability > 45 ? 'Uncertain' : 'Natural';
+              const vClass = s.fake_probability > 68 ? 'xai-v-ai' : s.fake_probability > 45 ? 'xai-v-unc' : 'xai-v-nat';
               return (
                 <div key={i} className="xai-sent-row">
                   <div className="xai-sent-meta">
-                    <span className="xai-sent-idx">#{i + 1}</span>
-                    <span className="xai-sent-verdict" style={{ color: clr }}>{lbl}</span>
-                    <span className="xai-sent-pct" style={{ color: clr }}>{s.fake_probability.toFixed(0)}%</span>
+                    <span className="xai-sent-idx">{String(i + 1).padStart(2, '0')}</span>
+                    <span className={`xai-sent-verdict ${vClass}`}>{lbl}</span>
+                    <span className="xai-sent-pct">{s.fake_probability.toFixed(0)}%</span>
                   </div>
-                  <div className="xai-sent-quote">"{s.sentence}"</div>
+                  <div className="xai-sent-quote">{s.sentence}</div>
                   <div className="xai-sent-track">
-                    <div className="xai-sent-fill" style={{ width: `${s.fake_probability}%`, background: clr, boxShadow: `0 0 8px ${clr}66` }} />
+                    <div className={`xai-sent-fill ${vClass}`} style={{ width: `${s.fake_probability}%` }} />
                   </div>
                 </div>
               );
@@ -300,9 +316,6 @@ function Footer() {
           Let Miraje reveal<br />
           <em>what's really there.</em>
         </p>
-        <a href="mailto:hello@miraje.ai" className="footer-cta-link">
-          GET IN TOUCH&nbsp;↗
-        </a>
       </div>
 
       <FooterCarousel />
@@ -372,8 +385,8 @@ function Footer() {
 function StampOverlay({ verdict, mode }) {
   if (!verdict || verdict.score == null) return null;
 
-  const isFake = verdict.score > 68;
-  const isUnc = verdict.score >= 45 && verdict.score <= 68;
+  const isFake = verdict.word === "Synthetic Detected" || verdict.word === "Forgery Confirmed";
+  const isUnc = verdict.word === "Inconclusive";
 
   const color = isFake ? "#ef4444" : isUnc ? "#facc15" : "#4ade80";
   const topText = isFake ? "SYNTHETIC MEDIA" : isUnc ? "UNVERIFIED MEDIA" : "VERIFIED MEDIA";
@@ -428,6 +441,175 @@ function StampOverlay({ verdict, mode }) {
   );
 }
 
+function ArchiveRow({ r, onDelete }) {
+  const [expanded, setExpanded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const isFake = r.cls === "v-fake";
+  const isUnc = r.cls === "v-unc";
+
+  const palette = isFake
+    ? { accent: "#ef4444", accentBg: "rgba(239,68,68,0.10)" }
+    : isUnc
+      ? { accent: "#d4a855", accentBg: "rgba(212,165,85,0.10)" }
+      : { accent: "#4ade80", accentBg: "rgba(74,222,128,0.10)" };
+
+  return (
+    <div
+      onClick={() => setExpanded(p => !p)}
+      style={{
+        background: "rgba(250,250,250,0.03)",
+        border: "1px solid rgba(250,250,250,0.08)",
+        borderLeft: `3px solid ${palette.accent}`,
+        borderRadius: 8,
+        overflow: "hidden",
+        transition: "background 0.2s, opacity 0.2s",
+        cursor: "pointer",
+        marginBottom: 4,
+        opacity: deleting ? 0.4 : 1,
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = "rgba(250,250,250,0.06)"}
+      onMouseLeave={e => e.currentTarget.style.background = "rgba(250,250,250,0.03)"}
+    >
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 80px 120px 90px 150px 32px 32px",
+        alignItems: "center",
+        padding: "16px 20px",
+        gap: 12,
+      }}>
+
+        {/* File */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 6,
+            background: "rgba(250,250,250,0.05)",
+            border: "1px solid rgba(250,250,250,0.08)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 15, color: "rgba(250,250,250,0.4)", flexShrink: 0,
+          }}>{r.glyph}</div>
+          <div>
+            <div style={{
+              fontFamily: "'Be Vietnam Pro', sans-serif",
+              fontSize: 14, fontWeight: 500,
+              color: "rgba(250,250,250,0.85)",
+              letterSpacing: "-0.01em", lineHeight: 1.3,
+            }}>{r.name}</div>
+            <div style={{
+              fontFamily: "'Inter', monospace", fontSize: 11,
+              color: "rgba(250,250,250,0.3)", marginTop: 2,
+            }}>{r.size}</div>
+          </div>
+        </div>
+
+        {/* Type */}
+        <div style={{
+          fontFamily: "'Inter', monospace", fontSize: 10,
+          color: "rgba(250,250,250,0.35)", letterSpacing: "0.08em",
+          textTransform: "uppercase",
+        }}>{r.type}</div>
+
+        {/* Verdict badge */}
+        <div>
+          <span style={{
+            fontSize: 10, padding: "4px 10px", borderRadius: 4,
+            fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+            color: palette.accent,
+            background: palette.accentBg,
+            border: `1px solid ${palette.accent}30`,
+          }}>
+            {r.lbl}
+          </span>
+        </div>
+
+        {/* Score */}
+        <div style={{
+          fontFamily: "'Be Vietnam Pro', sans-serif",
+          fontSize: 20, fontWeight: 400,
+          color: palette.accent,
+          letterSpacing: "-0.02em",
+        }}>{r.conf}</div>
+
+        {/* Timestamp */}
+        <div style={{
+          fontFamily: "'Inter', monospace", fontSize: 10,
+          color: "rgba(250,250,250,0.25)", letterSpacing: "0.02em",
+        }}>{r.date}</div>
+
+        {/* Expand chevron */}
+        <div style={{
+          color: "rgba(250,250,250,0.25)", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "transform 0.25s",
+          transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+        }}>↓</div>
+
+        {/* Delete button */}
+        <div
+          onClick={async e => {
+            e.stopPropagation();
+            if (deleting || !r.id) return;
+            setDeleting(true);
+            await onDelete(r.id);
+          }}
+          title="Remove from archive"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 28, height: 28, borderRadius: 5, cursor: "pointer",
+            color: "rgba(250,250,250,0.2)",
+            transition: "color 0.2s, background 0.2s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "rgba(250,250,250,0.2)"; e.currentTarget.style.background = "transparent"; }}
+        >
+          ✕
+        </div>
+      </div>
+
+      {/* Expandable panel */}
+      {expanded && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            borderTop: "1px solid rgba(250,250,250,0.06)",
+            background: "rgba(250,250,250,0.02)",
+          }}
+        >
+          {r.explanation ? (
+            <div style={{ padding: "16px 20px 18px 68px" }}>
+              <div style={{
+                fontFamily: "'Inter', monospace", fontSize: 10,
+                letterSpacing: "0.12em", textTransform: "uppercase",
+                color: "rgba(250,250,250,0.35)", marginBottom: 10,
+                display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <span>◈</span> AI Forensic Analyst
+              </div>
+              <div style={{
+                fontFamily: "'Be Vietnam Pro', sans-serif",
+                fontSize: 13, color: "rgba(250,250,250,0.65)",
+                lineHeight: 1.85, whiteSpace: "pre-wrap",
+              }}>
+                {r.explanation}
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "14px 20px 14px 68px" }}>
+              <div style={{
+                fontFamily: "'Inter', monospace", fontSize: 10,
+                color: "rgba(250,250,250,0.2)", letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}>
+                No AI explanation available for this case
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 /* ── MAIN APP ── */
 export default function App() {
   const { currentUser, logout } = useAuth();
@@ -456,13 +638,77 @@ export default function App() {
   const [audioSrc, setAudioSrc] = useState(null);
   const [textInput, setTextInput] = useState("");
   const [history, setHistory] = useState([]);
+  const [archive, setArchive] = useState([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [addedToArchive, setAddedToArchive] = useState(false);
   const [xaiData, setXaiData] = useState({ tokenImportance: [], sentenceScores: [] });
   const [gradcam, setGradcam] = useState(null);   // ← GradCAM heatmap (base64 PNG)
+  const [referenceFile, setReferenceFile] = useState(null);
+  const [referenceSrc, setReferenceSrc] = useState(null);
+  const referenceRef = useRef(null);
   const [geminiExplanation, setGeminiExplanation] = useState(null);
+  const [xaiOpen, setXaiOpen] = useState(false);
 
   const fileRef = useRef(null);
   const cfg = CFG[mode];
   const aboutRef = useRef(null);
+
+
+  const loadArchive = useCallback(async () => {
+    if (!currentUser) return;
+    setArchiveLoading(true);
+    try {
+      const q = query(
+        collection(db, "users", currentUser.uid, "archive"),
+        orderBy("timestamp", "desc")
+      );
+      const snap = await getDocs(q);
+      setArchive(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error("Failed to load archive:", e);
+    } finally {
+      setArchiveLoading(false);
+    }
+  }, [currentUser]);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      await deleteDoc(doc(db, "users", currentUser.uid, "archive", id));
+      setArchive(prev => prev.filter(r => r.id !== id));
+    } catch (e) {
+      console.error("Delete failed:", e);
+    }
+  }, [currentUser]);
+  useEffect(() => { loadArchive(); }, [loadArchive]);
+
+  const addToArchive = useCallback(async () => {
+    if (!currentUser || verdict.score == null) return;
+    const now = new Date();
+    const entry = {
+      glyph: getModeGlyph(mode),
+      name: mode === "text" ? `"${textInput.slice(0, 32)}…"` : fileName,
+      size: mode === "text" ? `${textInput.split(/\s+/).length} words` : fileSize + " MB",
+      type: mode.charAt(0).toUpperCase() + mode.slice(1),
+      cls: verdict.color === "var(--danger2)" ? "v-fake"
+        : verdict.color === "var(--warn2)" ? "v-unc" : "v-real",
+      lbl: verdict.word === "Forgery Confirmed" ? "Forged"
+        : verdict.word === "Synthetic Detected" ? "Synthetic"
+          : verdict.word === "Inconclusive" ? "Inconclusive" : "Authentic",
+      conf: verdict.score.toFixed(1) + "%",
+      confClr: verdict.color,
+      timestamp: now.toISOString(),
+      date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+      explanation: geminiExplanation || null,
+    };
+    try {
+      await addDoc(collection(db, "users", currentUser.uid, "archive"), entry);
+      setArchive(prev => [entry, ...prev]);
+      setAddedToArchive(true);
+      setTimeout(() => setAddedToArchive(false), 3000);
+    } catch (e) {
+      console.error("Failed to save to archive:", e);
+    }
+  }, [currentUser, verdict, mode, textInput, fileName, fileSize]);
 
   // Reset all result state when mode changes
   useEffect(() => {
@@ -471,9 +717,12 @@ export default function App() {
     setPipelineVisible(false);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
     setGradcam(null);   // ← reset GradCAM on mode switch
+    setReferenceFile(null);
+    setReferenceSrc(null);
     setGeminiExplanation(null);
+    setAddedToArchive(false);
+    setXaiOpen(false);
   }, [mode]);
-
   /* About word-reveal animation — only fires scrolling down */
   useEffect(() => {
     if (!aboutRef.current) return;
@@ -525,6 +774,9 @@ export default function App() {
       r.readAsText(f);
       setPreviewSrc(null);
       setAudioSrc(null);
+    } else if (f.type.startsWith("video/")) {
+      setPreviewSrc(URL.createObjectURL(f));
+      setAudioSrc(null);
     } else {
       setPreviewSrc(null);
       setAudioSrc(null);
@@ -545,7 +797,7 @@ export default function App() {
     setAnalysing(true);
     setPipelineVisible(true);
     setXaiData({ tokenImportance: [], sentenceScores: [] });
-    setGradcam(null);   // ← clear stale heatmap before new run
+    setGradcam(null);
     setGeminiExplanation(null);
 
     const steps = cfg.steps.map(s => ({ label: s, state: "pending" }));
@@ -557,44 +809,20 @@ export default function App() {
     }
 
     let score = null, prediction = null;
+    let explanationText = null;   // ← single variable shared across all branches
+
     try {
       const formData = new FormData();
 
       if (mode === "image") {
         formData.append("image", file);
-        const res = await fetch("http://localhost:5000/predict-image-v2", { method: "POST", body: formData });
-        const d = await res.json();
-        score = d.fake_probability;
-        prediction = d.prediction;
-        setGradcam(d.gradcam || null)
-        if (d.gradcam) {
-          const explainRes = await fetch("http://localhost:5000/explain-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prediction: d.prediction,
-              fake_probability: d.fake_probability,
-              real_probability: d.real_probability,
-              gradcam: d.gradcam,
-            }),
-          });
-          const explainData = await explainRes.json();
-          setGeminiExplanation(explainData.explanation || null);
-        };   // ← store GradCAM heatmap
-      } else if (mode === "audio") {
-        formData.append("audio", file);
-        const res = await fetch("http://localhost:5000/predict-audio", { method: "POST", body: formData });
-        const d = await res.json();
-        score = d.score ?? d.fake_probability; prediction = d.prediction;
-      } else if (mode === "signature") {
-        formData.append("signature", file);
-        const res = await fetch("http://localhost:5000/predict-signature", { method: "POST", body: formData });
+        const res = await fetch(`${API}/predict-image-v2`, { method: "POST", body: formData });
         const d = await res.json();
         score = d.fake_probability;
         prediction = d.prediction;
         setGradcam(d.gradcam || null);
         if (d.gradcam) {
-          const explainRes = await fetch("http://localhost:5000/explain-signature", {
+          const explainRes = await fetch(`${API}/explain-image`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -605,23 +833,85 @@ export default function App() {
             }),
           });
           const explainData = await explainRes.json();
-          setGeminiExplanation(explainData.explanation || null);
+          explanationText = explainData.explanation || null;   // ← capture locally
+          setGeminiExplanation(explanationText);
         }
+
+      } else if (mode === "audio") {
+        formData.append("audio", file);
+        const res = await fetch(`${API}/predict-audio`, { method: "POST", body: formData });
+        const d = await res.json();
+        score = d.score ?? d.fake_probability;
+        prediction = d.prediction;
+        // audio has no explanation endpoint, explanationText stays null
+
+      } else if (mode === "signature") {
+        formData.append("signature", file);
+        formData.append("reference", referenceFile);
+        const res = await fetch(`${API}/predict-signature`, { method: "POST", body: formData });
+        const d = await res.json();
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null);
+        if (d.gradcam) {
+          const explainRes = await fetch(`${API}/explain-signature`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          explanationText = explainData.explanation || null;   // ← capture locally
+          setGeminiExplanation(explanationText);
+        }
+
       } else if (mode === "video") {
         formData.append("video", file);
-        const res = await fetch("http://localhost:5000/predict-video", { method: "POST", body: formData });
+        const res = await fetch(`${API}/predict-video`, { method: "POST", body: formData });
         const d = await res.json();
-        score = d.fake_probability; prediction = d.prediction;
+        score = d.fake_probability;
+        prediction = d.prediction;
+        setGradcam(d.gradcam || null);
+        setXaiData({
+          tokenImportance: [],
+          sentenceScores: (d.frame_scores || []).map((s, i) => ({
+            sentence: `Frame ${i + 1}`,
+            fake_probability: s,
+          })),
+        });
+        if (d.gradcam) {
+          const explainRes = await fetch(`${API}/explain-video`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prediction: d.prediction,
+              fake_probability: d.fake_probability,
+              real_probability: d.real_probability,
+              gradcam: d.gradcam,
+            }),
+          });
+          const explainData = await explainRes.json();
+          explanationText = explainData.explanation || null;   // ← capture locally
+          setGeminiExplanation(explanationText);
+        }
+
       } else if (mode === "text") {
-        const res = await fetch("http://localhost:5000/predict-text", {
+        const res = await fetch(`${API}/predict-text`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: textInput }),
         });
         const d = await res.json();
-        score = d.fake_probability; prediction = d.prediction;
+        score = d.fake_probability;
+        prediction = d.prediction;
         setXaiData({ tokenImportance: d.token_importance || [], sentenceScores: d.sentence_scores || [] });
+        // text has no gemini explanation, explanationText stays null
       }
+
     } catch (err) {
       console.error("API error:", err);
       setAnalysing(false);
@@ -635,7 +925,9 @@ export default function App() {
       return;
     }
 
-    const isFake = prediction === "fake";
+    const isFake = (typeof prediction === "string"
+      ? prediction.toLowerCase() === "fake"
+      : Boolean(prediction)) || score > 68;
     const isUnc = score >= 45 && score <= 68;
     const color = isFake ? "var(--danger2)" : isUnc ? "var(--warn2)" : "var(--safe2)";
     const glow = isFake ? "rgba(239,68,68,.4)" : isUnc ? "rgba(212,165,85,.38)" : "rgba(74,222,128,.4)";
@@ -646,9 +938,11 @@ export default function App() {
     setVisibleScores([]);
     await sleep(80);
     cfg.results.forEach((_, i) => setTimeout(() => setVisibleScores(prev => [...prev, i]), i * 200));
+    setXaiOpen(false); // reset toggle on new analysis
 
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
     setHistory(prev => [{
       glyph: getModeGlyph(mode),
       name: mode === "text" ? `"${textInput.slice(0, 32)}…"` : fileName,
@@ -659,14 +953,19 @@ export default function App() {
       conf: score.toFixed(1) + "%",
       confClr: color,
       date: dateStr,
+      explanation: explanationText,   // ← now correctly captured, not from stale state
     }, ...prev]);
 
     setAnalysing(false);
-  }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize, textInput]);
+  }, [fileLoaded, analysing, mode, cfg, file, fileName, fileSize, textInput, referenceFile]);
 
   if (!currentUser) return <AuthPage />;
 
-  const canSubmit = mode === "text" ? textInput.trim().length > 20 : fileLoaded;
+  const canSubmit = mode === "text"
+    ? textInput.trim().length > 20
+    : mode === "signature"
+      ? fileLoaded && referenceFile !== null
+      : fileLoaded;
 
   const aboutText =
     "Miraje is a modern deepfake detection system focused on identifying synthetic media through forensic AI, signal analysis, and transformer-based reasoning.";
@@ -684,15 +983,32 @@ export default function App() {
           <div className="brand-wordmark">Miraje</div>
         </div>
         <nav className="header-nav">
-          {["Analysis", "Archive", "Reports", "System"].map(n => (
-            <button key={n} className={`nav-link${activeNav === n ? " active" : ""}`} onClick={() => setActiveNav(n)}>{n}</button>
+          {["Home", "Analysis", "Archive"].map(n => (
+            <button
+              key={n}
+              className={`nav-link${activeNav === n ? " active" : ""}`}
+              onClick={() => {
+                if (n === "Home") {
+                  window.location.href = '/';
+                  return;
+                }
+                setActiveNav(n);
+                if (n === "Analysis") {
+                  setTimeout(() => {
+                    document.getElementById('services-sec')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 0);
+                }
+              }}
+            >
+              {n}
+            </button>
           ))}
         </nav>
         <div className="header-actions">
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
             <span style={{
               fontFamily: "'Be Vietnam Pro', sans-serif",
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: 500,
               color: "rgba(43,49,51,0.85)",
               letterSpacing: "-0.01em",
@@ -702,28 +1018,41 @@ export default function App() {
           </div>
           <button
             onClick={logout}
+            title="Logout"
             style={{
-              border: "1px solid rgba(43,49,51,0.18)", borderRadius: 4,
-              color: "rgba(43,49,51,0.6)", fontFamily: "'Inter',monospace",
-              fontSize: 9, letterSpacing: 2, textTransform: "uppercase",
-              padding: "5px 13px", background: "none", cursor: "pointer",
-              transition: "color .2s, border-color .2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 34,
+              height: 34,
+              border: "none",
+              borderRadius: 6,
+              color: "rgba(43,49,51,0.7)",
+              background: "none",
+              cursor: "pointer",
+              transition: "color .2s",
             }}
-            onMouseEnter={e => { e.target.style.color = "var(--danger2)"; e.target.style.borderColor = "rgba(239,68,68,.4)"; }}
-            onMouseLeave={e => { e.target.style.color = "rgba(43,49,51,0.6)"; e.target.style.borderColor = "rgba(43,49,51,0.18)"; }}
+            onMouseEnter={e => { e.target.style.color = "var(--danger2)"; }}
+            onMouseLeave={e => { e.target.style.color = "rgba(43,49,51,0.7)"; }}
           >
-            Logout
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
           </button>
         </div>
       </header>
 
       {/* ── LANDING ONLY: Hero + About + Carousel + Services ── */}
-      {!initialMode && (
+      {!initialMode && activeNav !== "Archive" && (
         <>
           <div className="slide-stack">
 
             {/* HERO */}
             <div className="hero bidaya-hero">
+              <span className="shooting-star shooting-star-a" aria-hidden="true" />
+              <span className="shooting-star shooting-star-b" aria-hidden="true" />
               <div className="hero-badge">Advanced Deepfake Detection</div>
               <h1 className="hero-title">
                 Nothing is what <br />
@@ -756,12 +1085,6 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-                <button
-                  className="about-cta"
-                  onClick={() => document.getElementById("services-sec")?.scrollIntoView({ behavior: "smooth" })}
-                >
-                  GET STARTED →
-                </button>
               </div>
             </section>
 
@@ -781,15 +1104,50 @@ export default function App() {
               ))}
             </div>
             <AllWorksButton />
-            <p className="services-desc">
-              Miraje provides forensic-grade analysis across five media types. Select a module above to open its detection workspace and submit media for analysis.
-            </p>
           </section>
         </>
       )}
 
       {/* ── WORKSPACE (?mode=X only) ── */}
-      {initialMode && (
+      {activeNav === "Archive" && (
+        <div style={{ padding: "80px 5vw", maxWidth: 1200, margin: "0 auto" }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 48 }}>
+            <div style={{ fontFamily: "'Inter', monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ghost)", marginBottom: 12 }}>
+              Forensic Archive
+            </div>
+            <h2 style={{ fontFamily: "'Be Vietnam Pro', sans-serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 400, color: "var(--plum)", letterSpacing: "-0.03em", lineHeight: 1.05, margin: 0 }}>
+              {archive.length} saved {archive.length === 1 ? "case" : "cases"}
+            </h2>
+          </div>
+
+          {archiveLoading ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--ghost)", fontFamily: "'Inter',monospace", fontSize: 12 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--safe2)", animation: "pulse 2s infinite" }} />
+              Loading archive…
+            </div>
+          ) : archive.length === 0 ? (
+            <div style={{ padding: "80px 0", textAlign: "center" }}>
+              <div style={{ fontSize: 48, color: "rgba(250,250,250,0.06)", marginBottom: 20 }}>◈</div>
+              <div style={{ fontFamily: "'Inter', monospace", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ghost)" }}>
+                No archived cases yet
+              </div>
+              <div style={{ marginTop: 10, fontSize: 13, color: "rgba(250,250,250,0.25)" }}>
+                Run an analysis and press "+ Archive" to save a case here
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {archive.map((r, i) => (
+                <ArchiveRow key={r.id || i} r={r} onDelete={handleDelete} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {initialMode && activeNav !== "Archive" && (
         <main id="workspace-sec">
           <div className="ws-page">
 
@@ -829,7 +1187,7 @@ export default function App() {
               className="ws-media-zone"
               onDragOver={onDragOver}
               onDrop={onDrop}
-              onClick={() => mode !== 'text' && fileRef.current?.click()}
+              onClick={() => mode !== 'text' && mode !== 'signature' && fileRef.current?.click()}
             >
               {scanning && <div className="scan-beam" />}
               <div className="dc tl" /><div className="dc tr" /><div className="dc bl" /><div className="dc br" />
@@ -849,18 +1207,48 @@ export default function App() {
                 </div>
               )}
               {/* ADD THIS BLOCK HERE */}
-              {previewSrc && mode === 'signature' && (
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <img className="ws-media-img" src={previewSrc} alt="preview" />
+              {mode === 'signature' && (
+                <div
+                  style={{ display: 'flex', width: '100%', height: '100%', gap: 2 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Slot 1 — Query signature */}
+                  <div
+                    style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid rgba(250,250,250,0.06)', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+                  >
+                    {previewSrc
+                      ? <img src={previewSrc} alt="query" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      : <div style={{ paddingTop: 16, fontFamily: "'Be Vietnam Pro', sans-serif", fontSize: 13, color: "rgba(43,49,51,0.65)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>✦</div>
+                        <div>SIGNATURE TO VERIFY</div>
+                        <div style={{ opacity: 0.5, marginTop: 4, fontSize: 10 }}>Click to upload</div>
+                      </div>
+                    }
+                    <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 9, letterSpacing: 2, color: 'var(--ghost)', fontFamily: "'Inter',monospace", textTransform: 'uppercase' }}>Query</div>
+                  </div>
+
+                  {/* Slot 2 — Reference signature */}
+                  <div
+                    style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); referenceRef.current?.click(); }}
+                  >
+                    {referenceSrc
+                      ? <img src={referenceSrc} alt="reference" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      : <div style={{ textAlign: 'center', color: 'var(--fog)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1 }}>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>✦</div>
+                        <div>REFERENCE SIGNATURE</div>
+                        <div style={{ opacity: 0.5, marginTop: 4, fontSize: 10 }}>Click to upload</div>
+                      </div>
+                    }
+                    <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 9, letterSpacing: 2, color: 'var(--ghost)', fontFamily: "'Inter',monospace", textTransform: 'uppercase' }}>Reference</div>
+                  </div>
+
                   <StampOverlay verdict={verdict} mode={mode} />
                 </div>
               )}
 
-              {!previewSrc && audioSrc === null && file && mode === 'video' && (
-                <video className="ws-media-img"
-                  src={URL.createObjectURL(file)} muted playsInline preload="metadata"
-                  style={{ objectFit: 'cover' }} />
-              )}
+
 
               {audioSrc && (
                 <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -887,16 +1275,11 @@ export default function App() {
                       setFileSize((e.target.value.length / 1024).toFixed(2));
                     }}
                   />
-                  {textInput.length === 0 && (
-                    <button className="ws-browse-btn"
-                      onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}>
-                      Browse File
-                    </button>
-                  )}
+                 
                 </div>
               )}
 
-              {!previewSrc && !audioSrc && mode !== 'text' && (
+              {!previewSrc && !audioSrc && mode !== 'text' && mode !== 'signature' && (
                 <div className="ws-empty">
                   <div className="ws-empty-glyph">{getModeGlyph(mode)}</div>
                   <div className="ws-empty-title">Drop to analyse</div>
@@ -911,6 +1294,20 @@ export default function App() {
               )}
               <StampOverlay verdict={verdict} mode={mode} />
             </div>
+            <input
+              type="file"
+              ref={referenceRef}
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const f = e.target.files[0];
+                if (!f) return;
+                setReferenceFile(f);
+                const r = new FileReader();
+                r.onload = ev => setReferenceSrc(ev.target.result);
+                r.readAsDataURL(f);
+              }}
+            />
             <input type="file" ref={fileRef} onChange={onFilePick} style={{ display: 'none' }} />
 
             {/* ── ANALYSIS BAR ── */}
@@ -938,112 +1335,270 @@ export default function App() {
                 )}
               </div>
               <button className="ws-run-btn" disabled={!canSubmit || analysing} onClick={runAnalysis}>
-                {!canSubmit ? (mode === 'text' ? 'Enter text first' : 'No file selected')
+                {!canSubmit ? (mode === 'text' ? 'Enter text first' : mode === 'signature' ? (fileLoaded ? 'Add reference signature' : 'No file selected') : 'No file selected')
                   : analysing ? 'Analysing…'
                     : 'Initiate Analysis →'}
               </button>
             </div>
 
-            {/* ── TEXT XAI PANEL ── */}
-            {mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
+            {/* ── EXPLAINABILITY TOGGLE ── */}
+            {(
+              (mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0)) ||
+              ((mode === 'image' || mode === 'signature') && gradcam) ||
+              (mode === 'video' && gradcam)
+            ) && (
               <div className="ws-results-section">
-                <div className="sec-head">Explainability Report</div>
-                <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
-              </div>
-            )}
-
-            {/* ── IMAGE GRADCAM PANEL ── */}
-            {/* ── IMAGE GRADCAM PANEL ── */}
-            {(mode === 'image' || mode === 'signature') && gradcam && (
-              <div className="ws-results-section">
-                <div className="sec-head">
-                  {mode === 'signature' ? 'GradCAM — Stroke Attention Map' : 'GradCAM — Forensic Attention Map'}
-                </div>
-                <div style={{
-                  display: "flex",
-                  gap: 24,
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                }}>
-                  {/* Heatmap image */}
-                  <div style={{ flex: "1 1 280px" }}>
-                    <img
-                      src={`data:image/png;base64,${gradcam}`}
-                      alt="GradCAM heatmap"
-                      style={{
-                        width: "100%",
-                        borderRadius: 8,
-                        border: "1px solid rgba(250,250,250,0.08)",
-                        display: "block",
-                      }}
-                    />
-                  </div>
-
-                  {/* Legend + explanation */}
-                  <div style={{
-                    flex: "1 1 220px",
-                    fontFamily: "'Inter', monospace",
-                    fontSize: 12,
-                    color: "var(--fog)",
-                    lineHeight: 1.75,
-                    paddingTop: 4,
-                  }}>
-                    <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 8, fontSize: 13 }}>
-                      How to read this
-                    </div>
-                    <div style={{ marginBottom: 6 }}>
-                      <span style={{ color: "#ef4444" }}>■</span>{" "}
-                      <strong style={{ color: "var(--cream-30)" }}>Red / Orange</strong>
-                      {" "}— regions that most strongly influenced the synthetic detection
-                    </div>
-                    <div style={{ marginBottom: 6 }}>
-                      <span style={{ color: "#3b82f6" }}>■</span>{" "}
-                      <strong style={{ color: "var(--cream-30)" }}>Blue / Green</strong>
-                      {" "}— regions with low forensic significance
-                    </div>
-                    <div style={{ marginBottom: 6 }}>
-                      <span style={{ color: "var(--fog)" }}>◈</span>{" "}
-                      {mode === 'signature'
-                        ? 'Focus areas typically correspond to stroke transitions, pen-lift points, and irregular letter formations in forged signatures.'
-                        : 'Focus areas typically correspond to facial boundaries, eye regions, and skin texture anomalies in deepfake images.'}
-                    </div>
-                    <div style={{ marginTop: 12, opacity: 0.5, fontSize: 11 }}>
-                      Generated via Gradient-weighted Class Activation Mapping (Grad-CAM) on the final convolutional layer of the {mode === 'signature' ? 'MobileNetV2-based signature encoder' : 'hybrid ViT–CNN encoder'}.
-                    </div>
-                  </div>
-
-                  {/* ── Gemini AI Forensic Explanation ── */}
-                  {geminiExplanation && (
+                {/* Toggle header */}
+                <button
+                  onClick={() => setXaiOpen(p => !p)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "rgba(250,250,250,0.10)",
+                    border: "1px solid rgba(250,250,250,0.22)",
+                    borderRadius: xaiOpen ? "10px 10px 0 0" : 10,
+                    padding: "18px 22px",
+                    cursor: "pointer",
+                    transition: "background 0.2s, border-color 0.2s, border-radius 0.2s",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(250,250,250,0.16)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(250,250,250,0.10)"}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    {/* Report icon in pill */}
                     <div style={{
-                      flex: "1 1 100%",          // full width, pushes onto its own row
-                      marginTop: 8,
-                      padding: "18px 20px",
+                      width: 36,
+                      height: 36,
                       borderRadius: 8,
-                      border: "1px solid rgba(250,250,250,0.08)",
-                      background: "rgba(250,250,250,0.03)",
-                      fontFamily: "'Be Vietnam Pro', sans-serif",
-                      fontSize: 13,
-                      color: "var(--fog)",
-                      lineHeight: 1.8,
-                      whiteSpace: "pre-wrap",
+                      background: "rgba(250,250,250,0.08)",
+                      border: "1px solid rgba(250,250,250,0.12)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
                     }}>
-                      <div style={{ color: "var(--cream)", fontWeight: 600, marginBottom: 10, fontSize: 13, letterSpacing: "0.04em" }}>
-                        ◈ &nbsp;AI Forensic Analyst
-                      </div>
-                      {geminiExplanation}
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none"
+                        stroke="rgba(250,250,250,0.75)" strokeWidth="1.8"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
                     </div>
-                  )}
+                    <div style={{ textAlign: "left" }}>
+                      <div style={{
+                        fontFamily: "'Inter', monospace",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color: "rgba(250,250,250,0.9)",
+                      }}>
+                        View Explainability Report
+                      </div>
+                      <div style={{
+                        fontFamily: "'Inter', monospace",
+                        fontSize: 11,
+                        color: "rgba(250,250,250,0.4)",
+                        marginTop: 3,
+                        letterSpacing: "0.04em",
+                      }}>
+                        {mode === 'text' ? 'RoBERTa tokenisation · sentence-level breakdown'
+                          : mode === 'video' ? 'BiLSTM temporal analysis · frame-level forensics'
+                          : mode === 'signature' ? 'GradCAM · EfficientNet-B0 channel-wise attention'
+                          : 'GradCAM · Vision Transformer + CNN encoder'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    color: "rgba(250,250,250,0.5)",
+                    fontSize: 18,
+                    transition: "transform 0.3s cubic-bezier(.22,1,.36,1)",
+                    transform: xaiOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    lineHeight: 1,
+                  }}>↓</div>
+                </button>
 
+                {/* Collapsible body */}
+                <div style={{
+                  overflow: "hidden",
+                  maxHeight: xaiOpen ? "9999px" : "0px",
+                  transition: "max-height 0.45s cubic-bezier(.22,1,.36,1)",
+                  background: "rgba(250,250,250,0.02)",
+                  border: xaiOpen ? "1px solid rgba(250,250,250,0.09)" : "none",
+                  borderTop: "none",
+                  borderRadius: "0 0 10px 10px",
+                }}>
+                  <div style={{ padding: "28px 0 12px" }}>
+
+                    {/* TEXT XAI */}
+                    {mode === 'text' && (xaiData.tokenImportance.length > 0 || xaiData.sentenceScores.length > 0) && (
+                      <div style={{ padding: "0 24px 16px" }}>
+                        <XAIPanel tokenImportance={xaiData.tokenImportance} sentenceScores={xaiData.sentenceScores} />
+                      </div>
+                    )}
+
+                    {/* IMAGE / SIGNATURE GRADCAM */}
+                    {(mode === 'image' || mode === 'signature') && gradcam && (
+                      <div style={{ padding: "0 24px 16px" }}>
+                        <div style={{
+                          display: "flex",
+                          gap: 24,
+                          alignItems: "stretch",
+                          flexWrap: "wrap",
+                        }}>
+                          {/* Heatmap image */}
+                          <div style={{ flex: "1 1 340px", maxWidth: 520, minHeight: 320 }}>
+                            <img
+                              src={`data:image/png;base64,${gradcam}`}
+                              alt="GradCAM heatmap"
+                              style={{
+                                width: "100%",
+                                height: "auto",
+                                minHeight: 280,
+                                objectFit: "contain",
+                                borderRadius: 8,
+                                border: "1px solid rgba(250,250,250,0.08)",
+                                display: "block",
+                              }}
+                            />
+                          </div>
+
+                          {/* Info cards column */}
+                          <div style={{ flex: "1 1 380px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+                            {/* How to read this */}
+                            <div style={{
+                              background: "rgba(250,250,250,0.03)",
+                              borderRadius: 10,
+                              border: "1px solid rgba(250,250,250,0.09)",
+                              padding: "22px 24px",
+                            }}>
+                              <div style={{
+                                fontFamily: "'Inter', monospace",
+                                fontSize: 15,
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                color: "rgba(250,250,250,1)",
+                                marginBottom: 14,
+                                fontWeight: 600,
+                              }}>
+                                How to read this
+                              </div>
+                              <div style={{ fontSize: 17, color: "rgba(250,250,250,1)", lineHeight: 1.8 }}>
+                                <span style={{ color: "#ef4444" }}>■</span>{" "}
+                                <strong style={{ color: "#ffffff", fontWeight: 600 }}>Red / Orange</strong>
+                                {" "}regions most strongly influenced the synthetic detection.{"  "}
+                                <span style={{ color: "#60a5fa" }}>■</span>{" "}
+                                <strong style={{ color: "#ffffff", fontWeight: 600 }}>Blue / Green</strong>
+                                {" "}regions carried low forensic significance.
+                              
+                              </div>
+                            </div>
+
+                            {/* AI Forensic Analyst */}
+                            {geminiExplanation && (
+                              <div style={{
+                                background: "rgba(250,250,250,0.03)",
+                                borderRadius: 10,
+                                border: "1px solid rgba(250,250,250,0.09)",
+                                padding: "22px 24px",
+                              }}>
+                                <div style={{
+                                  fontFamily: "'Inter', monospace",
+                                  fontSize: 15,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase",
+                                  color: "rgba(250,250,250,1)",
+                                  marginBottom: 14,
+                                  fontWeight: 600,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                }}>
+                                  <span>◈</span> AI Forensic Analyst
+                                </div>
+                                <div style={{
+                                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                                  fontSize: 17,
+                                  color: "rgba(250,250,250,1)",
+                                  lineHeight: 1.85,
+                                  whiteSpace: "pre-wrap",
+                                  overflowY: "auto",
+                                  maxHeight: 320,
+                                }}>
+                                  {geminiExplanation}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIDEO COMPOSITE XAI */}
+                    {mode === 'video' && gradcam && (
+                      <div style={{ padding: "0 24px 16px" }}>
+                        <div style={{ overflow: "hidden", position: "relative", paddingBottom: "24%" }}>
+                          <img
+                            src={`data:image/png;base64,${gradcam}`}
+                            alt="Video deepfake analysis"
+                            style={{
+                              position: "absolute",
+                              width: "100%",
+                              top: "-50%",
+                              display: "block",
+                              borderRadius: 8,
+                              border: "1px solid rgba(250,250,250,0.08)",
+                            }}
+                          />
+                        </div>
+                        {geminiExplanation && (
+                          <div style={{
+                            marginTop: 20,
+                            padding: "22px 24px",
+                            borderRadius: 10,
+                            border: "1px solid rgba(250,250,250,0.09)",
+                            background: "rgba(250,250,250,0.03)",
+                            whiteSpace: "pre-wrap",
+                          }}>
+                            <div style={{
+                              fontSize: 15,
+                              fontWeight: 600,
+                              color: "rgba(250,250,250,1)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.1em",
+                              fontFamily: "'Inter', monospace",
+                              marginBottom: 14,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}>
+                              <span>◈</span> AI Forensic Analyst
+                            </div>
+                            <div style={{ fontSize: 17, color: "rgba(250,250,250,1)", fontFamily: "'Be Vietnam Pro', sans-serif", lineHeight: 1.85 }}>
+                              {geminiExplanation}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
                 </div>
               </div>
             )}
-
             {/* ── HISTORY TABLE ── */}
             <div className="ws-results-section">
               <div className="sec-head">Recent Cases</div>
               <div className="table-wrap">
                 <div className="t-head">
-                  <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div>
+                  <div>File</div><div>Type</div><div>Verdict</div><div>Score</div><div>Timestamp</div><div></div>
                 </div>
                 {history.length === 0 ? (
                   <div style={{ padding: '28px 24px', color: 'var(--ghost)', fontFamily: "'Inter',monospace", fontSize: 11, letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' }}>
@@ -1062,6 +1617,37 @@ export default function App() {
                     <div><span className={`rc-verdict ${r.cls}`}>{r.lbl}</span></div>
                     <div className="t-conf" style={{ color: r.confClr }}>{r.conf}</div>
                     <div className="t-date">{r.date}</div>
+                    <div>
+                      <button
+                        onClick={async () => {
+                          if (r._archived) return;
+                          const now = new Date();
+                          const entry = { ...r, timestamp: now.toISOString() };
+                          try {
+                            await addDoc(collection(db, "users", currentUser.uid, "archive"), entry);
+                            setHistory(prev => prev.map((row, j) => j === i ? { ...row, _archived: true } : row));
+                            setArchive(prev => [{ ...entry, id: Date.now().toString() }, ...prev]);
+                          } catch (e) {
+                            console.error("Archive failed:", e);
+                          }
+                        }}
+                        style={{
+                          fontSize: 10,
+                          fontFamily: "'Inter', monospace",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: r._archived ? "var(--safe2)" : "var(--ghost)",
+                          background: "none",
+                          border: "none",
+                          cursor: r._archived ? "default" : "pointer",
+                          padding: "4px 0",
+                          transition: "color 0.2s",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {r._archived ? "✓ Archived" : "+ Archive"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

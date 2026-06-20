@@ -131,7 +131,7 @@ text_model_ready = False
 model = None
 tokenizer = None
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "ai_detector_roberta_final.pth")
+MODEL_PATH = os.environ.get("MODEL_PATH", "/app/models/ai_detector_roberta_final.pth")
 
 try:
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)

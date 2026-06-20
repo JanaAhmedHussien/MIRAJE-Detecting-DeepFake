@@ -14,7 +14,7 @@ import base64
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../../.env")
+load_dotenv()
 groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
@@ -39,7 +39,7 @@ image_model_ready = False
 vit = cnn_block = fc_layers = image_transform = None
 
 try:
-    weights_path = "../weights.pt"
+    weights_path = os.environ.get("MODEL_PATH", "../weights.pt")
     if not os.path.exists(weights_path):
         raise FileNotFoundError(f"{weights_path} not found")
 
