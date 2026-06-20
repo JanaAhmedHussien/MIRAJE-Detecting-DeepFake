@@ -361,11 +361,9 @@ npm run test
 
 ## Screenshots / Demo
 
-
 ```markdown
-![demo](Demo.gif)
+<img src="./Demo.gif" alt="demo" width="800"/>
 ```
-
 ---
 
 ## Project Structure
