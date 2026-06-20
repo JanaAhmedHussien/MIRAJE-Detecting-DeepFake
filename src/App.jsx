@@ -10,8 +10,8 @@ import audModuleImg from './assets/modules/audio_module.png';
 import sigModuleImg from './assets/modules/signature_module.png';
 import txtModuleImg from './assets/modules/text_module.png';
 import WheelCarousel from "./WheelCarousel";
-import AllWorksButton from "./AllWorksButton";
-import WorksPage from "./WorksPage";
+import AllWorksButton from "./Allworksbutton";
+import WorksPage from "./Workspage";
 /* ── DATA CONFIG ── */
 const CFG = {
   image: {
