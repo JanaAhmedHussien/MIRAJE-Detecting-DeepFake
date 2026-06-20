@@ -358,12 +358,10 @@ npm run test
 ```
 
 ---
-
 ## Screenshots / Demo
 
-```markdown
 <img src="./Demo.gif" alt="demo" width="800"/>
-```
+
 ---
 
 ## Project Structure
