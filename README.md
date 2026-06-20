@@ -1,129 +1,171 @@
-# Miraje — Deepfake & Forgery Detection Platform
+# MIRAJE - AI System for Detecting and Verifying Deepfake Multimedia Content
 
-Miraje is a web-based platform for detecting AI-generated and manipulated media. It supports four types of input — images, audio, video, and handwritten signatures — and runs deep learning models to determine whether the submitted file is authentic or synthetic.
+> *A mirage is something that appears real but is not. MIRAJE is the system that sees through it.*
 
-The name is inspired by the concept of a desert mirage: something that looks real but isn't. The interface reflects this theme visually.
+MIRAJE is a unified, web-based deepfake detection platform that identifies synthetic media manipulation across **five modalities** (images, audio, video, text, and handwritten signatures) within a single forensic framework. Every verdict is paired with explainability output (Grad-CAM, SHAP, LIME, Integrated Gradients) and a plain-language forensic summary, so non-technical users such as journalists, legal professionals, and educators can understand *why* content was flagged, not just *that* it was flagged.
 
----
-
-## What It Does
-
-- **Image detection**: Uses a Vision Transformer (ViT) combined with a CNN to identify GAN-generated or manipulated photographs.
-- **Audio detection**: Uses a CNN-LSTM model on Mel spectrograms to detect cloned or synthesized voices.
-- **Signature verification**: Uses a MobileNetV2-based classifier to distinguish genuine handwritten signatures from forgeries.
-- **Video analysis**: Frame-level temporal consistency checks for face-swap and deepfake detection (UI ready, model integration in progress).
-
-Users upload a file through a drag-and-drop interface, the backend runs inference, and the results are displayed with a verdict, confidence score, and breakdown across multiple forensic subsystems.
+Two research papers describing this work were accepted and presented at **IEEE ICEENG 2026** (Military Technical College, Cairo).
 
 ---
 
-## Architecture
+## Team Members
 
-The project is split into two parts:
+| Name | Student ID | Program |
+|---|---|---|
+| Jana Ahmed | 202201853 | DSAI |
+| Maysam Asser | 202200276 | DSAI |
+| Rana Saad | 202200902 | DSAI |
+| Riwan Ashraf | 202201726 | DSAI |
 
-- A **React frontend** (built with Vite) that handles the UI, authentication, file upload, and result display.
-- A **Flask backend** that loads the trained models and exposes prediction endpoints.
+**Supervisor:** Dr. Mohamed Maher
+**Institution:** Zewail City of Science and Technology - School of Computational Sciences and Artificial Intelligence (CSAI)
 
-The frontend sends files to the backend via HTTP POST requests with `multipart/form-data`, and the backend returns JSON with the prediction and probabilities.
+### Research Publications
+- **Paper 1** - *Beyond Accuracy: Metaheuristic Driven Optimization of Interpretable Deepfake Detection with Vision Transformers* - IEEE ICEENG 2026
+- **Paper 2** - *Audio Deepfake Detection Using GAN-Pretrained CNN-LSTM with Metaheuristic Hyperparameter Optimization* - IEEE ICEENG 2026
 
+---
+
+## Problem Statement
+
+Deepfake content now spans multiple media types simultaneously, yet detection tools remain fragmented and modality-specific — a journalist verifying a video clip must consult separate, specialized tools for the audio, the text, and the image, each requiring technical expertise. Existing detectors are also largely black boxes: they issue a verdict with no explanation, making the result difficult to trust, reference in reporting, or contest in a legal context. Finally, no widely accessible, unified platform exists that delivers multi-modal deepfake detection to non-technical users with the transparency that responsible use demands. MIRAJE is built to close all three gaps simultaneously.
+
+---
+
+## Features
+
+- **Five detection modalities** in one platform: image, audio, video, text, and handwritten signature forgery.
+- **Hybrid ViT + CNN image detector** with FFT/DCT frequency-domain preprocessing, optimized via a nested Firefly + Simulated Annealing metaheuristic (92.30% accuracy, 80k-image test set).
+- **GAN-pretrained CNN-LSTM audio detector** on Mel-spectrograms, optimized via the Bat Algorithm (94.44% accuracy, F1 = 0.9438).
+- **Siamese EfficientNet-B0 signature verifier** with channel-attention on the feature difference, trained on CEDAR + GPDS-1150 + ICDAR 2011 (96.32% validation accuracy).
+- **RoBERTa + linguistic-feature text detector**, evaluated under a strict topic-stratified split with zero topic overlap between train/val/test (test AUC 0.9909, F1 = 0.9783).
+- **Dual-stream video detector** (EfficientNet-B4 spatial stream + BiLSTM temporal head, ViT-B/16 frequency stream, cross-attention fusion), evaluated across FaceForensics++, Celeb-DF v2, and DFDC (test AUC 0.929, EER 14.8%).
+- **Explainable AI throughout**: Grad-CAM, SHAP, LIME (image), Integrated Gradients via Captum (text), per-frame Grad-CAM timelines (video), Mel-spectrogram visualization (audio), and channel-attention maps (signature).
+- **Groq API explanation layer**: technical XAI output is synthesized into a plain-language forensic summary shown in an "AI Forensic Analyst" panel.
+- **Firebase Authentication** with email/password and Google OAuth, plus a guest fallback mode for local development.
+- **Recent Cases history table** tracking file name, modality, verdict, confidence, and timestamp per session.
+- **Microservices backend** (FastAPI gateway + five independent services) enabling per-modality scaling and fault isolation.
+- **Full experiment tracking** across all five modalities via Weights & Biases.
+
+---
+
+## System Architecture
+
+MIRAJE uses a decoupled four-tier architecture: a React frontend, a FastAPI gateway, five independent modality services, and Firebase for authentication.
+
+```mermaid
+flowchart TB
+    FE["React 19 + Vite 7 Frontend<br/>Upload UI • Verdict Ring • AI Forensic Analyst Panel • Recent Cases History"]
+    FB["Firebase Authentication<br/>Email/Password + Google OAuth"]
+    GW["FastAPI Gateway<br/>Routing • Per-modality Timeouts • Health Aggregation"]
+
+    FE <-->|session token| FB
+    FE -->|multipart / JSON request| GW
+    GW -->|JSON verdict| FE
+
+    subgraph SVC["Independent FastAPI Modality Services"]
+        direction LR
+        IMG["Image Service<br/>ViT + CNN"]
+        AUD["Audio Service<br/>GAN-pretrained CNN-LSTM"]
+        SIG["Signature Service<br/>EfficientNet-B0 Siamese"]
+        TXT["Text Service<br/>RoBERTa + Linguistic Features"]
+        VID["Video Service<br/>EffNet-B4 + ViT-B/16 + BiLSTM"]
+    end
+
+    GW --> IMG
+    GW --> AUD
+    GW --> SIG
+    GW --> TXT
+    GW --> VID
+    IMG --> GW
+    AUD --> GW
+    SIG --> GW
+    TXT --> GW
+    VID --> GW
 ```
-Frontend (React + Vite)
-    |
-    |  POST /predict-image, /predict-audio, /predict-signature
-    v
-Backend (Flask)
-    |
-    |-- ViT + CNN       (PyTorch)       -> image classification
-    |-- CNN-LSTM         (Keras)         -> audio classification
-    |-- MobileNetV2      (Keras)         -> signature classification
+
+Each modality service follows the same internal pipeline before returning its result to the gateway:
+
+```mermaid
+flowchart LR
+    P["Preprocessing<br/>(modality-specific)"] --> M["Model Inference"]
+    M --> X["XAI Module<br/>Grad-CAM / SHAP / LIME / Captum"]
+    X --> GQ["Groq API<br/>Plain-language Forensic Summary"]
+    GQ --> R["JSON Response → Gateway"]
 ```
 
-Authentication is handled through Firebase (email/password and Google sign-in).
+
+
+Firebase Authentication sits outside this stack as a managed identity service. Weights & Biases sits outside the runtime path as an offline experiment-tracking system used during training.
+
+The system was originally built as a single Flask monolith for rapid prototyping, then re-architected into the FastAPI microservices design above to allow independent scaling, fault isolation, and parallel development across modalities.
 
 ---
 
-## Tech Stack
+## Technology Stack
 
-**Frontend**: React 19, Vite 7, Firebase Authentication, vanilla CSS
-
-**Backend**: Flask, PyTorch, TensorFlow/Keras, OpenCV, Librosa, NumPy, Pillow
-
----
-
-## Project Structure
-
-```
-Miraje-E2E/
-|-- backend/
-|   |-- api.py                            # Flask API with all prediction endpoints
-|   |-- image_module.pth                  # ViT+CNN weights (not tracked in git)
-|   |-- audio_model.keras                 # CNN-LSTM weights (not tracked in git)
-|   |-- signature_forgery_detector.keras  # MobileNetV2 weights (not tracked in git)
-|   |-- metadata.json                    # Model metadata
-|
-|-- src/
-|   |-- main.jsx            # React entry point
-|   |-- App.jsx              # Main app component (analysis UI, history, pipeline)
-|   |-- Miraje.css           # Core styles and animations
-|   |-- AuthPage.jsx         # Login and signup page
-|   |-- AuthPage.css         # Auth page styles
-|   |-- AuthContext.jsx      # Firebase auth context provider
-|   |-- firebase.js          # Firebase SDK setup
-|   |-- index.css            # Global styles and font imports
-|
-|-- index.html               # HTML shell
-|-- vite.config.js
-|-- package.json
-|-- .env                     # Firebase credentials (not tracked in git)
-|-- .gitignore
-```
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 19, Vite 7, Framer Motion, CSS3, Firebase JS SDK |
+| **API Gateway** | FastAPI, Uvicorn, Python 3.9+ |
+| **Modality Services** | FastAPI, Uvicorn, per-service model loading |
+| **Machine Learning** | PyTorch, TensorFlow/Keras, HuggingFace Transformers, timm |
+| **Audio Processing** | Librosa |
+| **Computer Vision** | OpenCV, TorchVision, MTCNN (facenet-pytorch), Albumentations |
+| **Explainable AI** | Grad-CAM, SHAP, LIME, Captum (Integrated Gradients) |
+| **Natural-Language Explanation** | Groq API |
+| **Authentication** | Firebase (Email/Password + Google OAuth) |
+| **Experiment Tracking** | Weights & Biases (`deepfake-gp` team → `DeepfakeDetection_GraduationProject` project) |
+| **Load Testing** | Locust |
+| **Unit/Integration Testing** | Vitest v3.2.4, React Testing Library |
+| **Version Control** | Git, GitHub |
 
 ---
 
-## Prerequisites
+## Environment Requirements
 
-- Node.js 18 or later
-- Python 3.9 or later
-- npm
-- pip
+- **Python** 3.9 or later
+- **Node.js** 18 or later
+- **npm**
+- **pip**
+- GPU strongly recommended for backend inference (especially video and audio); training was performed on Google Colab Pro (V100/A100)
+- Python packages: `fastapi`, `uvicorn`, `torch`, `torchvision`, `transformers`, `timm`, `tensorflow`, `librosa`, `opencv-python`, `Pillow`, `facenet-pytorch`, `albumentations`, `captum`, `shap`, `lime`
+- A Firebase project (Authentication enabled for Email/Password and Google)
+- A Groq API key (for the natural-language explanation layer)
 
 ---
 
-## Setup
+## Setup Instructions
 
-### 1. Clone the repo
-
+### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/Miraje-E2E.git
-cd Miraje-E2E
+git clone https://github.com/JanaAhmedHussien/MIRAJE-Detecting-DeepFake.git
+cd MIRAJE-Detecting-DeepFake
 ```
 
-### 2. Install frontend dependencies
-
-```bash
-npm install
-```
-
-### 3. Set up the backend
-
+### 2. Backend setup
 ```bash
 cd backend
 python -m venv venv
 
-# On Windows:
+# Windows
 venv\Scripts\activate
-
-# On macOS/Linux:
+# macOS / Linux
 source venv/bin/activate
 
-pip install flask flask-cors torch torchvision transformers tensorflow numpy opencv-python Pillow librosa
+pip install -r requirements.txt
 ```
 
-### 4. Configure Firebase
-
-Create a `.env` file in the project root with your Firebase project credentials:
-
+### 3. Frontend setup
+```bash
+cd frontend
+npm install
 ```
+
+### 4. Environment variables
+Create a `.env` file in the frontend directory (see `.env.example`):
+
+```env
 VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
@@ -132,127 +174,260 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-You can find these values in the Firebase Console under Project Settings > Your Apps > Web App.
+Create a `.env` file in the backend directory for the Groq integration:
 
-Make sure to enable **Email/Password** and **Google** sign-in methods under Authentication > Sign-in method.
+```env
+GROQ_API_KEY=your_groq_api_key
+```
 
-### 5. Add model files
+Enable **Email/Password** and **Google** sign-in methods under Firebase Console → Authentication → Sign-in method.
 
-The trained model weights are not included in the repository because of their size. You need to place them in the `backend/` directory:
+### 5. Add model checkpoints
+Trained model weights are not committed to the repository due to size. Place the following files in their respective service directories (contact the maintainers for the files, or retrain using the provided notebooks):
 
-| File | Architecture | Approximate Size |
-|------|-------------|-----------------|
-| `image_module.pth` | ViT-Base + CNN | ~355 MB |
-| `audio_model.keras` | CNN-LSTM | ~1.7 MB |
-| `signature_forgery_detector.keras` | MobileNetV2 | ~28 MB |
+| Service | File | Approx. Size |
+|---|---|---|
+| Image | `image_module.pth` (ViT + CNN) | ~355 MB |
+| Audio | `audio_model.keras` (GAN-pretrained CNN-LSTM) | ~2 MB |
+| Signature | `signature_model.pth` (EfficientNet-B0 Siamese) | ~20 MB |
+| Text | `text_model.pth` (RoBERTa + linguistic head) | ~480 MB |
+| Video | `video_model.pth` (EfficientNet-B4 + ViT-B/16 + BiLSTM) | ~650 MB |
 
-Contact the project maintainers for the weight files, or train your own using the associated notebooks.
+Each service will still start if its checkpoint is missing — it will simply return `503` on its prediction endpoint until the file is added.
 
 ---
 
-## Running
+## Deployment Instructions
 
-### Start the backend
-
+### Start the backend (each service independently, then the gateway)
 ```bash
-cd backend
-python api.py
+uvicorn image_service.main:app     --port 5001 &
+uvicorn audio_service.main:app     --port 5002 &
+uvicorn signature_service.main:app --port 5003 &
+uvicorn text_service.main:app      --port 5004 &
+uvicorn video_service.main:app     --port 5005 &
+uvicorn gateway.main:app           --port 5000
 ```
-
-This starts the Flask server on `http://localhost:5000`. It will print which models loaded successfully:
-
-```
-Miraje backend running on http://localhost:5000
-   Image:     ready
-   Audio:     ready
-   Signature: ready
-```
-
-The server will still start even if some model files are missing — those endpoints will just return a 503 error until the files are added.
 
 ### Start the frontend
-
-In a separate terminal:
-
 ```bash
+cd frontend
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in your browser. The frontend communicates with the gateway at `http://localhost:5000`.
+
+### Per-service timeout configuration (enforced at the gateway)
+
+| Service | Timeout |
+|---|---|
+| Image | 30 s |
+| Signature | 30 s |
+| Audio | 60 s |
+| Text | 60 s |
+| Video | 120 s |
+
+For production deployment, each service is stateless and can be containerized and horizontally scaled independently behind a load balancer; only the gateway needs to be aware of service addresses.
 
 ---
 
-## API Endpoints
+## API Documentation
 
-### GET /health
+All endpoints are exposed through the gateway at `http://<gateway-host>:5000`.
 
-Returns the server status and which models are loaded.
-
+### `GET /health`
+Returns aggregated status of all five services.
 ```json
 {
-  "status": "running",
-  "models": {
-    "image": true,
-    "audio": true,
-    "signature": true
-  }
+  "image": "ok",
+  "audio": "ok",
+  "signature": "ok",
+  "text": "ok",
+  "video": "ok"
 }
 ```
 
-### POST /predict-image
-
-Upload an image file in the `image` field.
-
+### `POST /predict-image`
+**Input:** multipart form field `image` (JPG/PNG)
 ```json
 {
-  "prediction": "fake",
-  "fake_probability": 87.34,
-  "real_probability": 12.66
+  "prediction": "FAKE",
+  "fake_probability": 0.873,
+  "real_probability": 0.127,
+  "gradcam_heatmap": "<base64-encoded image>"
 }
 ```
 
-### POST /predict-audio
-
-Upload an audio file in the `audio` field.
-
+### `POST /predict-audio`
+**Input:** multipart form field `audio` (WAV/MP3)
 ```json
 {
-  "prediction": "real",
-  "fake_probability": 23.10,
-  "real_probability": 76.90,
-  "score": 23.10
+  "prediction": "REAL",
+  "fake_probability": 0.231,
+  "real_probability": 0.769,
+  "spectrogram": "<base64-encoded image>"
 }
 ```
 
-### POST /predict-signature
-
-Upload a signature image in the `signature` field.
-
+### `POST /predict-signature`
+**Input:** multipart form field `signature` (JPG/PNG, two images for comparison)
 ```json
 {
-  "prediction": "fake",
-  "fake_probability": 91.52,
-  "real_probability": 8.48,
-  "score": 91.52
+  "prediction": "FORGED",
+  "fake_probability": 0.915,
+  "real_probability": 0.085,
+  "similarity_score": 0.0109
 }
+```
+
+### `POST /predict-text`
+**Input:** JSON body
+```json
+{ "text": "Paste the passage to analyze here." }
+```
+**Output:**
+```json
+{
+  "prediction": "FAKE",
+  "fake_probability": 0.981,
+  "real_probability": 0.019,
+  "token_importance": [["The", 0.02], ["results", 0.41], ["indicate", 0.38]],
+  "sentence_scores": [0.91, 0.74, 0.95]
+}
+```
+
+### `POST /predict-video`
+**Input:** multipart form field `video` (MP4)
+```json
+{
+  "prediction": "FAKE",
+  "fake_probability": 0.567,
+  "real_probability": 0.433,
+  "frame_verdicts": [
+    { "frame": 0, "fake_probability": 0.41 },
+    { "frame": 1, "fake_probability": 0.58 }
+  ]
+}
+```
+
+Every endpoint returns at minimum a `prediction` field (`"REAL"`/`"FAKE"` or `"GENUINE"`/`"FORGED"` for signatures) and a `fake_probability` float between 0 and 1.
+
+---
+
+## Database & Data Persistence
+
+MIRAJE does not use a traditional application database. There is no schema for uploaded media because uploads are intentionally **not persisted**:
+
+- Files are processed entirely **in memory** by the relevant modality service and discarded immediately after the verdict is returned.
+- **No user-uploaded content** is stored on disk, used for retraining, or shared with third parties.
+- The only persisted user data is the **identity record managed by Firebase Authentication** (email address, OAuth provider ID, session tokens) — this is handled entirely by Firebase's own infrastructure and is not stored in any MIRAJE-controlled store.
+- The **"Recent Cases" history table** (file name, modality, verdict, confidence, timestamp) lives only in frontend React state for the duration of the browser session and is cleared on reload; it is not written to a backend database.
+
+This design choice was made deliberately for privacy and GDPR data-minimization reasons (see Ethics & Compliance below).
+
+---
+
+## Usage Guide
+
+1. **Authenticate.** On first load, sign in with email/password or click "Continue with Google." New users can sign up via the "Create One" link.
+2. **Analyze an image.** Open the Image tab, drag and drop a JPG/PNG, click **Initiate Analysis**. The verdict ring shows REAL/FAKE with a confidence percentage; the detailed panel shows the Grad-CAM heatmap and the AI Forensic Analyst's plain-language summary.
+3. **Analyze audio.** Open the Audio tab, upload a WAV/MP3, click **Initiate Analysis**. Results include the verdict, confidence score, and Mel-spectrogram visualization.
+4. **Verify a signature.** Open the Signature tab, upload the signature image(s), click **Initiate Analysis**. Results include the Genuine/Forged verdict, similarity score, cosine similarity, and Euclidean distance between embeddings.
+5. **Analyze a video.** Open the Video tab, upload an MP4, click **Initiate Analysis**. The system samples frames, detects and aligns faces, and returns a frame-by-frame fake-probability timeline with Grad-CAM overlays alongside the overall verdict.
+6. **Analyze text.** Paste or type a passage into the text input and click **Analyze**. Results include the Human/AI verdict and per-token, per-sentence attribution highlighting.
+7. **Review history.** The Recent Cases table on the dashboard records every analysis from the current session — modality, verdict, confidence, and timestamp.
+
+### Troubleshooting
+- **Analyze button unresponsive:** confirm all five backend services and the gateway are running and reachable.
+- **CORS errors in the browser console:** verify the `allow_origins` list in `gateway/main.py` matches your frontend origin.
+- **Video analysis is very slow:** confirm the MTCNN/FFT preprocessing cache directory is populated; without it, face detection and frequency transforms are recomputed on every request.
+
+---
+
+## Testing
+
+- **Unit/integration tests:** 48 tests across 4 component suites (`App.test.jsx`, `AuthContext.test.jsx`, `AuthPage.test.jsx`, `Miraje.test.jsx`) using Vitest v3.2.4 and React Testing Library — **100% pass rate**.
+- **Integration testing:** verified via Postman and live frontend-backend calls; gateway health-aggregation tested for graceful reporting of individual service unavailability.
+- **Load testing:** Locust-based concurrent-user simulation against the image, audio, and signature endpoints.
+- **Model regression testing:** a 20-image regression suite covering PNG/JPG/RGBA inputs after the RGBA-to-RGB preprocessing fix.
+
+Run the frontend test suite:
+```bash
+cd frontend
+npm run test
 ```
 
 ---
 
-## About the Models
+## Screenshots / Demo
 
-**Image model** — A hybrid ViT + CNN architecture. The ViT (google/vit-base-patch16-224) extracts global features through its CLS token and patch embeddings. The patch tokens are reshaped into a 2D grid and passed through two convolutional layers for local feature extraction. Both feature vectors are concatenated and classified through fully connected layers. Input images are resized to 224x224 and normalized to [-1, 1].
+> Add screenshots/GIFs to a `docs/screenshots/` folder and reference them here, e.g.:
 
-**Audio model** — A CNN-LSTM network that operates on log-Mel spectrograms. Audio is resampled to 16 kHz and clipped or padded to 2 seconds. A 128-band Mel spectrogram is computed, converted to log scale, and normalized. The model outputs a sigmoid score where lower values indicate synthetic speech.
+```markdown
+![Landing page](docs/screenshots/ui_hero.png)
+![Image analysis result](docs/screenshots/image_result.png)
+![Video analysis with Grad-CAM timeline](docs/screenshots/video_result.png)
+![Text analysis with token attribution](docs/screenshots/text_result.png)
+![Signature verification result](docs/screenshots/signature_result.png)
+```
 
-**Signature model** — A MobileNetV2-based binary classifier. Input images are converted to grayscale, resized to 128x128, converted back to 3-channel RGB, and normalized to [0, 1]. The model outputs a sigmoid score for genuine probability; the complement gives the forgery likelihood.
+Recommended captures: landing page, each of the five analysis tabs mid-result (showing verdict ring + AI Forensic Analyst panel), the Recent Cases history table, and the gateway `/health` response.
+
+---
+
+## Project Structure
+
+```
+MIRAJE-Detecting-DeepFake/
+├── backend/
+│   ├── gateway/                 # FastAPI gateway: routing, timeouts, health aggregation
+│   ├── image_service/           # ViT + CNN inference service
+│   ├── audio_service/           # GAN-pretrained CNN-LSTM inference service
+│   ├── signature_service/       # EfficientNet-B0 Siamese inference service
+│   ├── text_service/            # RoBERTa + linguistic-feature inference service
+│   ├── video_service/           # EfficientNet-B4 + ViT-B/16 + BiLSTM inference service
+│   ├── xai/                     # Grad-CAM, SHAP, LIME, Captum helpers
+│   ├── groq_client.py           # Groq API integration for plain-language summaries
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── AuthPage.jsx
+│   │   ├── AuthContext.jsx
+│   │   ├── firebase.js
+│   │   └── Miraje.css
+│   ├── index.html
+│   ├── vite.config.js
+│   └── package.json
+├── docs/
+│   └── screenshots/
+└── README.md
+```
+
+Active development was organized across nine branches by feature/service area: `main`, `FE-redesign`, `Text-service-v3`, `feature/Text-service-v2`, `feature/audio-signature-service`, `feature/image-service`, `feature/video-service`, `frontend-redesign`, `refactor/backend-architecture`.
+
+---
+
+## Ethics & Compliance
+
+- **Privacy:** uploaded media is processed in memory only and never persisted (see Database section above).
+- **Bias mitigation:** training draws on multiple, demographically varied public datasets per modality; verdicts are presented as probabilistic assessments, not absolute claims.
+- **Responsible framing:** results are positioned as decision-support for human reviewers, not authoritative rulings.
+- Standards referenced: OWASP secure-development practices, GDPR data-minimization principles, IEEE software engineering practices (version control, code review via pull request, systematic testing).
 
 ---
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
+2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Commit your changes
-4. Push and open a pull request
+4. Push and open a pull request against `main`
 
+## License
+
+MIT
+
+## Acknowledgments
+
+Supervised by Dr. Mohamed Maher, School of Computational Sciences and Artificial Intelligence, Zewail City of Science and Technology. With thanks to Dr. Doaa Shawky, Dr. Yousry Abdul Azeem, Dr. Ahmed Abdelsamea, Dr. Khaled Moustafa, Dr. Mayada Hadhoud, and Dr. Mohamed Ghalwash for guidance throughout our journey, and to the organizers and reviewers of IEEE ICEENG 2026 for accepting and featuring this work.
