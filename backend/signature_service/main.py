@@ -24,7 +24,7 @@ from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../../.env")
+load_dotenv()
 groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
 app = FastAPI()
@@ -113,7 +113,7 @@ class AttentionSiameseNetwork(nn.Module):
 sig_model_ready = False
 sig_model: AttentionSiameseNetwork = None
 
-MODEL_PATH = "../best_model.pth"
+MODEL_PATH = os.environ.get("MODEL_PATH", "/app/models/best_model.pth")
 
 try:
     if not os.path.exists(MODEL_PATH):

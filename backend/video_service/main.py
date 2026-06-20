@@ -22,7 +22,7 @@ from PIL import Image
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../../.env")
+load_dotenv()
 groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
@@ -242,7 +242,7 @@ def score_frames_individually(faces: list, ffts_list: list) -> list:
 video_model_ready = False
 video_model = None
 
-MODEL_PATH = "../final_model.pt"   # .pt saved from training notebook
+MODEL_PATH = os.environ.get("MODEL_PATH", "/app/models/final_model.pt")
 
 try:
     if not os.path.exists(MODEL_PATH):

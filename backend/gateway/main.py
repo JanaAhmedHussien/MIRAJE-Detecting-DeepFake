@@ -11,12 +11,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-IMAGE_SERVICE     = "http://localhost:5001"
-IMAGE_SERVICE_V2  = "http://localhost:5006"
-AUDIO_SERVICE     = "http://localhost:5002"
-SIGNATURE_SERVICE = "http://localhost:5003"
-TEXT_SERVICE      = "http://localhost:5004"
-VIDEO_SERVICE     = "http://localhost:5005"
+# IMPORTANT: these must match the service names in docker-compose.yml,
+# not "localhost" — each service runs in its own container.
+IMAGE_SERVICE_V2  = "http://image_service_v2:5006"
+AUDIO_SERVICE     = "http://audio_service:5002"
+SIGNATURE_SERVICE = "http://signature_service:5003"
+TEXT_SERVICE      = "http://text_service:5004"
+VIDEO_SERVICE     = "http://video_service:5005"
 
 
 @app.get("/")
@@ -34,53 +35,36 @@ async def health():
 
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.get(f"{IMAGE_SERVICE}/health")
-            status["services"]["image"] = r.json().get("status")
-        except:
-            status["services"]["image"] = "offline"
-
-        try:
             r = await client.get(f"{IMAGE_SERVICE_V2}/health")
             status["services"]["image_v2"] = r.json().get("status")
-        except:
+        except Exception:
             status["services"]["image_v2"] = "offline"
 
         try:
             r = await client.get(f"{AUDIO_SERVICE}/health")
             status["services"]["audio"] = r.json().get("status")
-        except:
+        except Exception:
             status["services"]["audio"] = "offline"
 
         try:
             r = await client.get(f"{VIDEO_SERVICE}/health")
             status["services"]["video"] = r.json().get("status")
-        except:
+        except Exception:
             status["services"]["video"] = "offline"
 
         try:
             r = await client.get(f"{SIGNATURE_SERVICE}/health")
             status["services"]["signature"] = r.json().get("status")
-        except:
+        except Exception:
             status["services"]["signature"] = "offline"
 
         try:
             r = await client.get(f"{TEXT_SERVICE}/health")
             status["services"]["text"] = r.json().get("status")
-        except:
+        except Exception:
             status["services"]["text"] = "offline"
 
     return status
-
-
-@app.post("/predict-image")
-async def predict_image(image: UploadFile = File(...)):
-    contents = await image.read()
-    async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
-            f"{IMAGE_SERVICE}/predict-image",
-            files={"image": (image.filename, contents, image.content_type)}
-        )
-    return response.json()
 
 
 @app.post("/predict-image-v2")
@@ -93,15 +77,16 @@ async def predict_image_v2(image: UploadFile = File(...)):
         )
     return response.json()
 
+
 @app.post("/explain-image")
 async def explain_image(payload: dict):
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                f"{IMAGE_SERVICE_V2}/explain",
-                json=payload,
-            )
-        return response.json()
-    
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"{IMAGE_SERVICE_V2}/explain",
+            json=payload,
+        )
+    return response.json()
+
 
 @app.post("/predict-audio")
 async def predict_audio(audio: UploadFile = File(...)):
@@ -112,7 +97,6 @@ async def predict_audio(audio: UploadFile = File(...)):
             files={"audio": (audio.filename, contents, audio.content_type)}
         )
     return response.json()
-
 
 
 @app.post("/predict-signature")
@@ -130,7 +114,6 @@ async def predict_signature(signature: UploadFile = File(...), reference: Upload
     return response.json()
 
 
-# AFTER
 @app.post("/explain-signature")
 async def explain_signature(payload: dict):
     async with httpx.AsyncClient(timeout=30) as client:
@@ -139,6 +122,7 @@ async def explain_signature(payload: dict):
             json=payload,
         )
     return response.json()
+
 
 @app.post("/predict-video")
 async def predict_video(video: UploadFile = File(...)):
@@ -150,6 +134,7 @@ async def predict_video(video: UploadFile = File(...)):
         )
     return response.json()
 
+
 @app.post("/explain-video")
 async def explain_video(payload: dict):
     async with httpx.AsyncClient(timeout=60) as client:
@@ -158,6 +143,7 @@ async def explain_video(payload: dict):
             json=payload,
         )
     return response.json()
+
 
 @app.post("/predict-text")
 async def predict_text(input: dict):

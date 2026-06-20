@@ -26,13 +26,14 @@ audio_model_ready = False
 audio_model = None
 
 try:
-    if not os.path.exists("../audio_model.keras"):
-        raise FileNotFoundError("audio_model.keras not found")
+    MODEL_PATH = os.environ.get("MODEL_PATH", "/app/models/audio_model.keras")
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"audio_model.keras not found at {MODEL_PATH}")
     from tensorflow.keras.initializers import Orthogonal
     from tensorflow.keras.layers import LSTM, Conv2D, Dense, Dropout, Reshape
     from tensorflow.keras.models import Model
     audio_model = tf.keras.models.load_model(
-        "../audio_model.keras",
+        MODEL_PATH,
         compile=False,
         custom_objects={
             "Orthogonal": Orthogonal,

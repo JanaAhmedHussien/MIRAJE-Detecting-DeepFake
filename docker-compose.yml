@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: ./backend/gateway
+    ports:
+      - "5000:5000"
+    env_file: .env
+    depends_on:
+      - audio_service
+      - signature_service
+      - text_service
+      - video_service
+      - image_service_v2
+
+  audio_service:
+    build: ./backend/audio_service
+    ports:
+      - "5002:5002"
+    environment:
+      - MODEL_PATH=/app/models/audio_model.keras
+    volumes:
+      - ./backend/audio_model.keras:/app/models/audio_model.keras
+
+  signature_service:
+    build: ./backend/signature_service
+    ports:
+      - "5003:5003"
+    env_file: .env
+    environment:
+      - MODEL_PATH=/app/models/best_model.pth
+    volumes:
+      - ./backend/best_model.pth:/app/models/best_model.pth
+
+  text_service:
+    build: ./backend/text_service
+    ports:
+      - "5004:5004"
+    environment:
+      - MODEL_PATH=/app/models/ai_detector_roberta_final.pth
+    volumes:
+      - ./backend/ai_detector_roberta_final.pth:/app/models/ai_detector_roberta_final.pth
+
+  video_service:
+    build: ./backend/video_service
+    ports:
+      - "5005:5005"
+    env_file: .env
+    environment:
+      - MODEL_PATH=/app/models/final_model.pt
+    volumes:
+      - ./backend/final_model.pt:/app/models/final_model.pt
+
+  image_service_v2:
+    build: ./backend/image_service_V2
+    ports:
+      - "5006:5006"
+    env_file: .env
+    environment:
+      - MODEL_PATH=/app/models/weights.pt
+    volumes:
+      - ./backend/weights.pt:/app/models/weights.pt
