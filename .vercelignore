@@ -1,0 +1,5 @@
+backend/
+requirements.txt
+*.pth
+*.keras
+docker-compose.yml
