@@ -361,17 +361,10 @@ npm run test
 
 ## Screenshots / Demo
 
-> Add screenshots/GIFs to a `docs/screenshots/` folder and reference them here, e.g.:
 
 ```markdown
-![Landing page](docs/screenshots/ui_hero.png)
-![Image analysis result](docs/screenshots/image_result.png)
-![Video analysis with Grad-CAM timeline](docs/screenshots/video_result.png)
-![Text analysis with token attribution](docs/screenshots/text_result.png)
-![Signature verification result](docs/screenshots/signature_result.png)
+![demo](Demo.gif)
 ```
-
-Recommended captures: landing page, each of the five analysis tabs mid-result (showing verdict ring + AI Forensic Analyst panel), the Recent Cases history table, and the gateway `/health` response.
 
 ---
 
